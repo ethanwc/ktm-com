@@ -1,0 +1,20 @@
+package com.ktm.kmrc.services.navigation;
+
+import com.google.gson.annotations.SerializedName;
+
+public enum GpsIcon
+{
+  GPS("GPS"),  GPS1("GPS1");
+  
+  private final String name;
+  
+  private GpsIcon(String paramString)
+  {
+    name = paramString;
+  }
+  
+  public String toString()
+  {
+    return name;
+  }
+}

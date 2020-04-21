@@ -1,0 +1,190 @@
+package com.ktm.navapp.riser;
+
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.NumberPicker;
+import android.widget.SeekBar;
+import android.widget.SeekBar.OnSeekBarChangeListener;
+import android.widget.TextView;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+import com.ktm.navapp.logging.Log;
+import com.ktm.navapp.search.Trip;
+import com.ktm.navapp.search.TripManager;
+import com.ktm.navapp.ui.base.NavAppBaseFragment;
+import com.ktm.navapp.ui.mainscreen.ExtendedLogoPosition;
+import com.ktm.navapp.ui.mainscreen.MainScreen;
+import com.ktm.navapp.ui.mainscreen.OnBackPressedHandler;
+import com.ktm.navapp.ui.routing.RouteWaypointsFragment;
+import com.ktm.navapp.ui.widgets.SliderCheckbox;
+import java.util.Locale;
+
+public class SmartSettingsRouteFragment
+  extends NavAppBaseFragment
+  implements OnBackPressedHandler
+{
+  final String TAG = SmartSettingsRouteFragment.class.getSimpleName();
+  @BindView(2131231227)
+  NumberPicker mDurationHoursPicker;
+  @BindView(2131231228)
+  NumberPicker mDurationMinutesPicker;
+  @BindView(2131231226)
+  View mDurationView;
+  @BindView(2131231230)
+  SeekBar mFlowSeekbar;
+  @BindView(2131231231)
+  TextView mFlowValues;
+  @BindView(2131230972)
+  TextView mHeaderText;
+  private boolean mNoRouteFound = false;
+  @BindView(2131231235)
+  SliderCheckbox mShowDurationSwitch;
+  
+  public SmartSettingsRouteFragment() {}
+  
+  private void applyOptions()
+  {
+    Trip localTrip = TripManager.getTrip();
+    smartRouteUseDuration = mShowDurationSwitch.isChecked();
+    smartRouteDurationMinutes = (mDurationHoursPicker.getValue() * 60 + mDurationMinutesPicker.getValue());
+    smartRouteWeightFactor100 = mFlowSeekbar.getProgress();
+    TripManager.setTrip(localTrip);
+  }
+  
+  private boolean areOptionsChanged()
+  {
+    Trip localTrip = TripManager.getTrip();
+    boolean bool2 = smartRouteUseDuration;
+    boolean bool3 = mShowDurationSwitch.isChecked();
+    boolean bool1 = true;
+    int i;
+    if (bool2 != bool3) {
+      i = 1;
+    } else {
+      i = 0;
+    }
+    if ((i == 0) && (smartRouteDurationMinutes == mDurationHoursPicker.getValue() * 60 + mDurationMinutesPicker.getValue())) {
+      i = 0;
+    } else {
+      i = 1;
+    }
+    if (i == 0)
+    {
+      if (smartRouteWeightFactor100 != mFlowSeekbar.getProgress()) {
+        return true;
+      }
+      bool1 = false;
+    }
+    return bool1;
+  }
+  
+  private void refreshUi()
+  {
+    Trip localTrip = TripManager.getTrip();
+    mHeaderText.setText(localTrip.getTitle());
+    mShowDurationSwitch.setChecked(smartRouteUseDuration);
+    mDurationMinutesPicker.setMinValue(0);
+    mDurationMinutesPicker.setMaxValue(59);
+    mDurationMinutesPicker.setValue(smartRouteDurationMinutes % 60);
+    mDurationHoursPicker.setMinValue(0);
+    mDurationHoursPicker.setMaxValue(24);
+    mDurationHoursPicker.setValue(Math.min(24, smartRouteDurationMinutes / 60));
+    onClickShowDurationSwitch();
+    mFlowSeekbar.setProgress(Math.max(0, Math.min(100, smartRouteWeightFactor100)));
+  }
+  
+  @OnClick({2131230798})
+  public void closeRouteOptions()
+  {
+    TripManager.restoreTrip(false);
+    getActivity().getSupportFragmentManager().popBackStack();
+    if (mNoRouteFound) {
+      getActivity().getSupportFragmentManager().popBackStack();
+    }
+  }
+  
+  @OnClick({2131230785})
+  public void onAddWaypoints()
+  {
+    applyOptions();
+    getActivity().getSupportFragmentManager().beginTransaction().replace(2131231033, RouteWaypointsFragment.newInstance(false)).addToBackStack(null).commit();
+  }
+  
+  public boolean onBackPressed()
+  {
+    closeRouteOptions();
+    return true;
+  }
+  
+  @OnClick({2131231163})
+  public void onButtonSave()
+  {
+    applyOptions();
+    ((MainScreen)getActivity()).setSaveTripView();
+  }
+  
+  @OnClick({2131231235})
+  public void onClickShowDurationSwitch()
+  {
+    View localView = mDurationView;
+    int i;
+    if (mShowDurationSwitch.isChecked()) {
+      i = 0;
+    } else {
+      i = 8;
+    }
+    localView.setVisibility(i);
+  }
+  
+  public View onCreateView(LayoutInflater paramLayoutInflater, ViewGroup paramViewGroup, Bundle paramBundle)
+  {
+    paramLayoutInflater = paramLayoutInflater.inflate(2131427431, paramViewGroup, false);
+    ButterKnife.bind(this, paramLayoutInflater);
+    ((MainScreen)getActivity()).configCopyrightIconPosition(ExtendedLogoPosition.BOTTOM_RIGHT);
+    mFlowSeekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener()
+    {
+      public void onProgressChanged(SeekBar paramAnonymousSeekBar, int paramAnonymousInt, boolean paramAnonymousBoolean)
+      {
+        mFlowValues.setText(String.format(Locale.getDefault(), "%d%%", new Object[] { Integer.valueOf(paramAnonymousInt) }));
+      }
+      
+      public void onStartTrackingTouch(SeekBar paramAnonymousSeekBar) {}
+      
+      public void onStopTrackingTouch(SeekBar paramAnonymousSeekBar) {}
+    });
+    return paramLayoutInflater;
+  }
+  
+  @OnClick({2131230856})
+  public void onDone()
+  {
+    if (areOptionsChanged()) {
+      applyOptions();
+    }
+    if (!getActivity().getSupportFragmentManager().popBackStackImmediate("ROUTE_PREVIEW_FRAGMENT_TAG", 0))
+    {
+      Log.d(TAG, "New Preview");
+      ((MainScreen)getActivity()).setRoutePreviewView(false);
+      return;
+    }
+    Log.d(TAG, "Preview from backstack");
+  }
+  
+  public void onResume()
+  {
+    super.onResume();
+    refreshUi();
+  }
+  
+  public SmartSettingsRouteFragment setNoRouteFound()
+  {
+    mNoRouteFound = true;
+    return this;
+  }
+}

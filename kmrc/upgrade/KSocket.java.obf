@@ -1,0 +1,41 @@
+package com.ktm.kmrc.io;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+
+public abstract class KSocket
+{
+  protected DataInputStream in = null;
+  protected DataOutputStream out = null;
+  
+  public KSocket() {}
+  
+  public abstract void close()
+    throws IOException;
+  
+  public abstract boolean equals(Object paramObject);
+  
+  public abstract void establishConnection(Connection.LinkingListener paramLinkingListener)
+    throws IOException;
+  
+  public DataInputStream in()
+  {
+    DataInputStream localDataInputStream = in;
+    if (localDataInputStream != null) {
+      return localDataInputStream;
+    }
+    throw new NullPointerException("KSocket.in == null");
+  }
+  
+  public DataOutputStream out()
+  {
+    DataOutputStream localDataOutputStream = out;
+    if (localDataOutputStream != null) {
+      return localDataOutputStream;
+    }
+    throw new NullPointerException("KSocket.out == null");
+  }
+  
+  public abstract String toString();
+}

@@ -1,0 +1,59 @@
+package com.com.navapp.offroad;
+
+import com.here.android.ui.common.GeoCoordinate;
+import com.here.android.ui.common.GeoPosition;
+
+public class PositionFilter
+{
+  private static final double COORDINATE_NOISE = 3.596313778377164E-5D;
+  private static final double DEG_TO_METER = 111225.0D;
+  private static final double METER_TO_DEG = 8.99078444594291E-6D;
+  private static final double TIME_STEP = 1.0D;
+  private GeoPosition mLastLocation;
+  private final Tracker1D mLatitudeTracker = new Tracker1D(1.0D, 3.596313778377164E-5D);
+  private final Tracker1D mLongitudeTracker = new Tracker1D(1.0D, 3.596313778377164E-5D);
+  
+  public PositionFilter() {}
+  
+  public GeoPosition getLastLocation()
+  {
+    return mLastLocation;
+  }
+  
+  public GeoCoordinate predict()
+  {
+    if (mLastLocation == null) {
+      return null;
+    }
+    return new GeoCoordinate(mLatitudeTracker.predict(0.0D), mLongitudeTracker.predict(0.0D));
+  }
+  
+  public void reset()
+  {
+    mLastLocation = null;
+  }
+  
+  public void update(GeoPosition paramGeoPosition)
+  {
+    if (paramGeoPosition != null)
+    {
+      if (!paramGeoPosition.isValid()) {
+        return;
+      }
+      double d1 = paramGeoPosition.getLatitudeAccuracy();
+      double d2 = paramGeoPosition.getCoordinate().getLatitude();
+      double d3 = d1 * 8.99078444594291E-6D;
+      if (mLastLocation == null) {
+        mLatitudeTracker.setState(d2, 0.0D, d3);
+      }
+      mLatitudeTracker.update(d2, d3);
+      d2 = paramGeoPosition.getCoordinate().getLongitude();
+      d1 = d1 * Math.cos(Math.toRadians(paramGeoPosition.getCoordinate().getLatitude())) * 8.99078444594291E-6D;
+      if (mLastLocation == null) {
+        mLongitudeTracker.setState(d2, 0.0D, d1);
+      }
+      mLongitudeTracker.update(d2, d1);
+      mLastLocation = paramGeoPosition;
+    }
+  }
+}

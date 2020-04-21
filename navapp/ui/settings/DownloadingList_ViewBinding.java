@@ -1,0 +1,30 @@
+package com.com.navapp.ui.settings;
+
+import android.view.View;
+import android.widget.ListView;
+import butterknife.Unbinder;
+import butterknife.internal.Utils;
+
+public class DownloadingList_ViewBinding
+  implements Unbinder
+{
+  private DownloadingList target;
+  
+  public DownloadingList_ViewBinding(DownloadingList paramDownloadingList, View paramView)
+  {
+    target = paramDownloadingList;
+    mDownloadList = ((ListView)Utils.findRequiredViewAsType(paramView, 2131230857, "field 'mDownloadList'", ListView.class));
+  }
+  
+  public void unbind()
+  {
+    DownloadingList localDownloadingList = target;
+    if (localDownloadingList != null)
+    {
+      target = null;
+      mDownloadList = null;
+      return;
+    }
+    throw new IllegalStateException("Bindings already cleared.");
+  }
+}

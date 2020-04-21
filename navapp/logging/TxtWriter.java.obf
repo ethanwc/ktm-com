@@ -1,0 +1,65 @@
+package com.ktm.navapp.logging;
+
+import com.ktm.navapp.utilities.Storage;
+
+class TxtWriter
+{
+  private static final String KEY_FILENAME;
+  private static final String TAG = TxtWriter.class.getSimpleName();
+  private static String sFileName = null;
+  
+  static
+  {
+    StringBuilder localStringBuilder = new StringBuilder();
+    localStringBuilder.append(TAG);
+    localStringBuilder.append(".FILENAME");
+    KEY_FILENAME = localStringBuilder.toString();
+  }
+  
+  TxtWriter() {}
+  
+  static void close()
+  {
+    if (init())
+    {
+      Log.i("[CLOSE]", sFileName);
+      String str = KEY_FILENAME;
+      sFileName = "";
+      Storage.set(str, "");
+    }
+  }
+  
+  private static boolean init()
+  {
+    if (sFileName == null) {
+      sFileName = Storage.getSilent(KEY_FILENAME, "");
+    }
+    return sFileName.isEmpty() ^ true;
+  }
+  
+  static void newLine(String paramString)
+  {
+    if (init()) {
+      writeLine(paramString);
+    }
+  }
+  
+  static void open(String paramString)
+  {
+    close();
+    String str = KEY_FILENAME;
+    sFileName = paramString;
+    Storage.set(str, paramString);
+    if (init())
+    {
+      System.setOut(LogStream.out);
+      System.setErr(LogStream.err);
+      Log.i("[OPEN]", sFileName);
+    }
+  }
+  
+  private static void writeLine(String paramString)
+  {
+    FileHandler.writeLine(sFileName, paramString);
+  }
+}

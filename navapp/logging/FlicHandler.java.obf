@@ -1,0 +1,88 @@
+package com.ktm.navapp.logging;
+
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
+import com.ktm.navapp.App;
+import com.ktm.navapp.utilities.Utilities;
+import io.flic.lib.FlicAppNotInstalledException;
+import io.flic.lib.FlicBroadcastReceiver;
+import io.flic.lib.FlicButton;
+import io.flic.lib.FlicManager;
+import io.flic.lib.FlicManagerInitializedCallback;
+
+public class FlicHandler
+  extends FlicBroadcastReceiver
+{
+  static final String TAG = FlicHandler.class.getSimpleName();
+  
+  public FlicHandler() {}
+  
+  public static void grabButton(Activity paramActivity)
+  {
+    
+    try
+    {
+      FlicManager.getInstance(App.getContext(), new FlicManagerInitializedCallback()
+      {
+        public void onInitialized(FlicManager paramAnonymousFlicManager)
+        {
+          paramAnonymousFlicManager.initiateGrabButton(val$activity);
+        }
+      });
+      return;
+    }
+    catch (FlicAppNotInstalledException paramActivity)
+    {
+      for (;;) {}
+    }
+    Utilities.toastShort("Flic App is not installed");
+  }
+  
+  public static boolean handleGrabButtonResult(int paramInt1, final int paramInt2, final Intent paramIntent)
+  {
+    if (paramInt1 == 52875) {
+      setAppCredentials();
+    }
+    try
+    {
+      FlicManager.getInstance(App.getContext(), new FlicManagerInitializedCallback()
+      {
+        public void onInitialized(FlicManager paramAnonymousFlicManager)
+        {
+          paramAnonymousFlicManager = paramAnonymousFlicManager.completeGrabButton(val$requestCode, paramInt2, paramIntent);
+          if (paramAnonymousFlicManager != null)
+          {
+            paramAnonymousFlicManager.registerListenForBroadcast(17);
+            Utilities.toastShort("Grabbed a button");
+            return;
+          }
+          Utilities.toastShort("Did not grab any button");
+        }
+      });
+    }
+    catch (FlicAppNotInstalledException paramIntent)
+    {
+      for (;;) {}
+    }
+    Utilities.toastShort("Flic App is not installed");
+    return true;
+    return false;
+  }
+  
+  static void setAppCredentials()
+  {
+    FlicManager.setAppCredentials("fc7287c2-264b-477b-a2d5-0ead288af916", "c82db5c8-e212-4923-bcce-b95873492cc5", "MyRide");
+  }
+  
+  public void onButtonUpOrDown(Context paramContext, FlicButton paramFlicButton, boolean paramBoolean1, int paramInt, boolean paramBoolean2, boolean paramBoolean3)
+  {
+    if (paramBoolean3)
+    {
+      LogExt.writeButtonTagEvent(paramFlicButton.getButtonId(), paramInt);
+      Utilities.toastShort("BUTTON TAG");
+    }
+  }
+  
+  protected void onRequestAppCredentials(Context paramContext) {}
+}

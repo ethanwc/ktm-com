@@ -1,0 +1,165 @@
+package com.ktm.navapp.ui.mainscreen;
+
+import android.view.View;
+import android.view.View.OnLongClickListener;
+import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.ImageView;
+import butterknife.Unbinder;
+import butterknife.internal.DebouncingOnClickListener;
+import butterknife.internal.Utils;
+import com.ktm.navapp.ui.widgets.AlphaAnimatedImageButton;
+
+public class MapControlsFragment_ViewBinding
+  implements Unbinder
+{
+  private MapControlsFragment target;
+  private View view7f080072;
+  private View view7f08013a;
+  private View view7f08013b;
+  private View view7f08013c;
+  private View view7f08013d;
+  private View view7f08013e;
+  private View view7f08013f;
+  private View view7f080140;
+  private View view7f08016e;
+  
+  public MapControlsFragment_ViewBinding(final MapControlsFragment paramMapControlsFragment, View paramView)
+  {
+    target = paramMapControlsFragment;
+    View localView = Utils.findRequiredView(paramView, 2131231039, "field 'mSearchButton' and method 'search'");
+    mSearchButton = ((ImageButton)Utils.castView(localView, 2131231039, "field 'mSearchButton'", ImageButton.class));
+    view7f08013f = localView;
+    localView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramMapControlsFragment.search();
+      }
+    });
+    localView = Utils.findRequiredView(paramView, 2131231040, "field 'mTripsButton' and method 'loadTrip'");
+    mTripsButton = ((ImageButton)Utils.castView(localView, 2131231040, "field 'mTripsButton'", ImageButton.class));
+    view7f080140 = localView;
+    localView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramMapControlsFragment.loadTrip();
+      }
+    });
+    localView = Utils.findRequiredView(paramView, 2131231035, "field 'mLetsRideButton' and method 'letsRide'");
+    mLetsRideButton = ((ImageButton)Utils.castView(localView, 2131231035, "field 'mLetsRideButton'", ImageButton.class));
+    view7f08013b = localView;
+    localView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramMapControlsFragment.letsRide();
+      }
+    });
+    localView = Utils.findRequiredView(paramView, 2131231034, "field 'mCenterButton' and method 'centerMap'");
+    mCenterButton = ((AlphaAnimatedImageButton)Utils.castView(localView, 2131231034, "field 'mCenterButton'", AlphaAnimatedImageButton.class));
+    view7f08013a = localView;
+    localView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramMapControlsFragment.centerMap();
+      }
+    });
+    localView = Utils.findRequiredView(paramView, 2131231038, "field 'mPlusButton' and method 'zoomUp'");
+    mPlusButton = ((AlphaAnimatedImageButton)Utils.castView(localView, 2131231038, "field 'mPlusButton'", AlphaAnimatedImageButton.class));
+    view7f08013e = localView;
+    localView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramMapControlsFragment.zoomUp();
+      }
+    });
+    localView = Utils.findRequiredView(paramView, 2131231037, "field 'mMinusButton' and method 'zoomDown'");
+    mMinusButton = ((AlphaAnimatedImageButton)Utils.castView(localView, 2131231037, "field 'mMinusButton'", AlphaAnimatedImageButton.class));
+    view7f08013d = localView;
+    localView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramMapControlsFragment.zoomDown();
+      }
+    });
+    localView = Utils.findRequiredView(paramView, 2131230834, "field 'mConnectBikeButton' and method 'connectBike'");
+    mConnectBikeButton = ((Button)Utils.castView(localView, 2131230834, "field 'mConnectBikeButton'", Button.class));
+    view7f080072 = localView;
+    localView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramMapControlsFragment.connectBike();
+      }
+    });
+    localView = Utils.findRequiredView(paramView, 2131231086, "field 'mConnectBikeIcon' and method 'connectBike'");
+    mConnectBikeIcon = ((ImageView)Utils.castView(localView, 2131231086, "field 'mConnectBikeIcon'", ImageView.class));
+    view7f08016e = localView;
+    localView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramMapControlsFragment.connectBike();
+      }
+    });
+    paramView = Utils.findRequiredView(paramView, 2131231036, "method 'showOptions' and method 'showTestOptions'");
+    view7f08013c = paramView;
+    paramView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramMapControlsFragment.showOptions();
+      }
+    });
+    paramView.setOnLongClickListener(new View.OnLongClickListener()
+    {
+      public boolean onLongClick(View paramAnonymousView)
+      {
+        return paramMapControlsFragment.showTestOptions();
+      }
+    });
+  }
+  
+  public void unbind()
+  {
+    MapControlsFragment localMapControlsFragment = target;
+    if (localMapControlsFragment != null)
+    {
+      target = null;
+      mSearchButton = null;
+      mTripsButton = null;
+      mLetsRideButton = null;
+      mCenterButton = null;
+      mPlusButton = null;
+      mMinusButton = null;
+      mConnectBikeButton = null;
+      mConnectBikeIcon = null;
+      view7f08013f.setOnClickListener(null);
+      view7f08013f = null;
+      view7f080140.setOnClickListener(null);
+      view7f080140 = null;
+      view7f08013b.setOnClickListener(null);
+      view7f08013b = null;
+      view7f08013a.setOnClickListener(null);
+      view7f08013a = null;
+      view7f08013e.setOnClickListener(null);
+      view7f08013e = null;
+      view7f08013d.setOnClickListener(null);
+      view7f08013d = null;
+      view7f080072.setOnClickListener(null);
+      view7f080072 = null;
+      view7f08016e.setOnClickListener(null);
+      view7f08016e = null;
+      view7f08013c.setOnClickListener(null);
+      view7f08013c.setOnLongClickListener(null);
+      view7f08013c = null;
+      return;
+    }
+    throw new IllegalStateException("Bindings already cleared.");
+  }
+}

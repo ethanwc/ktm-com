@@ -1,0 +1,90 @@
+package com.ktm.kmrc.services.navigation;
+
+import com.google.gson.annotations.Expose;
+
+public class StagedValue<T>
+{
+  @Expose
+  private Value<T> committed = Value.cloner();
+  @Expose
+  private Value<T> modified = Value.cloner();
+  
+  StagedValue() {}
+  
+  void commit()
+  {
+    if (modified.get() != null)
+    {
+      committed.set(modified.get());
+      modified.set(null);
+    }
+  }
+  
+  T committed()
+  {
+    return committed.get();
+  }
+  
+  public T modified()
+  {
+    return modified.get();
+  }
+  
+  void reset()
+  {
+    modified.set(null);
+    committed.set(null);
+  }
+  
+  public T result()
+  {
+    if (modified.get() != null) {
+      return modified.get();
+    }
+    return committed.get();
+  }
+  
+  public void set(T paramT)
+  {
+    if ((paramT != null) && (modified.get() != null) && (committed.get() != null))
+    {
+      if (!modified.get().equals(paramT))
+      {
+        if (!committed.get().equals(paramT))
+        {
+          modified.set(paramT);
+          return;
+        }
+        modified.set(null);
+      }
+    }
+    else if ((paramT != null) && (modified.get() != null))
+    {
+      if (!modified.get().equals(paramT)) {
+        modified.set(paramT);
+      }
+    }
+    else if ((paramT != null) && (committed.get() != null))
+    {
+      if (!committed.get().equals(paramT)) {
+        modified.set(paramT);
+      }
+    }
+    else
+    {
+      if (paramT != null)
+      {
+        modified.set(paramT);
+        return;
+      }
+      if ((modified.get() != null) && (committed.get() != null))
+      {
+        modified.set(null);
+        return;
+      }
+      if (modified.get() != null) {
+        modified.set(null);
+      }
+    }
+  }
+}

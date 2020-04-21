@@ -1,0 +1,53 @@
+package com.ktm.navapp.navigation;
+
+import android.app.AppOpsManager;
+import android.app.IntentService;
+import android.content.Context;
+import android.content.Intent;
+import android.os.Process;
+import android.os.SystemClock;
+import com.here.android.mpa.common.GeoCoordinate;
+import com.ktm.navapp.App;
+
+public class MockLocationService
+  extends IntentService
+{
+  MockLocationDataManager mMock;
+  
+  public MockLocationService()
+  {
+    super(MockLocationService.class.getName());
+  }
+  
+  public boolean isMockLocationEnabled()
+  {
+    boolean bool2 = false;
+    try
+    {
+      AppOpsManager localAppOpsManager = (AppOpsManager)App.getContext().getSystemService("appops");
+      boolean bool1 = bool2;
+      if (localAppOpsManager != null)
+      {
+        int i = localAppOpsManager.checkOp("android:mock_location", Process.myUid(), "com.ktm.myride");
+        bool1 = bool2;
+        if (i == 0) {
+          bool1 = true;
+        }
+      }
+      return bool1;
+    }
+    catch (Exception localException) {}
+    return false;
+  }
+  
+  protected void onHandleIntent(Intent paramIntent) {}
+  
+  public void simulateSomethingCustomRoute()
+  {
+    SystemClock.sleep(5000L);
+    mMock.setLocation(new GeoCoordinate(53.428858D, 14.552649D));
+    SystemClock.sleep(5000L);
+    mMock.setLocation(new GeoCoordinate(53.422147D, 14.560524D));
+    SystemClock.sleep(5000L);
+  }
+}

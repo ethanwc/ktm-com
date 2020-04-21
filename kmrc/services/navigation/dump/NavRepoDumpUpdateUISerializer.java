@@ -1,0 +1,52 @@
+package com.com.kmrc.services.navigation.dump;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+import java.lang.reflect.Type;
+
+public class NavRepoDumpUpdateUISerializer
+  implements JsonSerializer<com.ktm.kmrc.services.navigation.dump.UpdateUIDump>
+{
+  public NavRepoDumpUpdateUISerializer() {}
+  
+  public JsonElement serialize(UpdateUIDump paramUpdateUIDump, Type paramType, JsonSerializationContext paramJsonSerializationContext)
+  {
+    paramType = new JsonObject();
+    if (turnIcon.hasValue()) {
+      paramType.add("TurnIcon", paramJsonSerializationContext.serialize(turnIcon));
+    }
+    if (turnDist.hasValue()) {
+      paramType.add("TurnDist", paramJsonSerializationContext.serialize(turnDist));
+    }
+    if (turnDistUnit.hasValue()) {
+      paramType.add("TurnDistUnit", paramJsonSerializationContext.serialize(turnDistUnit));
+    }
+    if (turnInfo.hasValue()) {
+      paramType.add("TurnInfo", paramJsonSerializationContext.serialize(turnInfo));
+    }
+    if (turnRoad.hasValue()) {
+      paramType.add("TurnRoad", paramJsonSerializationContext.serialize(turnRoad));
+    }
+    if (messageId.hasValue()) {
+      paramType.add("ETA", paramJsonSerializationContext.serialize(messageId));
+    }
+    if (dist2Target.hasValue()) {
+      paramType.add("Dist2Target", paramJsonSerializationContext.serialize(dist2Target));
+    }
+    if (notificationIcon.hasValue()) {
+      paramType.add("NotificationIcon", paramJsonSerializationContext.serialize(notificationIcon));
+    }
+    if (notificationText.hasValue()) {
+      paramType.add("NotificationText", paramJsonSerializationContext.serialize(notificationText));
+    }
+    if (gpsIcon.hasValue()) {
+      paramType.add("GpsIcon", paramJsonSerializationContext.serialize(gpsIcon));
+    }
+    if (paramType.size() == 0) {
+      return null;
+    }
+    return paramType;
+  }
+}

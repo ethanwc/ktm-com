@@ -1,0 +1,35 @@
+package com.ktm.kmrc.services.navigation;
+
+import com.google.gson.annotations.Expose;
+
+public class Widget<T>
+{
+  @Expose
+  private StagedValue<Visibility> Visibility = new StagedValue();
+  @Expose
+  private StagedValue<T> content = new StagedValue();
+  
+  public Widget() {}
+  
+  void commit()
+  {
+    content.commit();
+    Visibility.commit();
+  }
+  
+  public StagedValue<T> content()
+  {
+    return content;
+  }
+  
+  void reset()
+  {
+    content.reset();
+    Visibility.reset();
+  }
+  
+  public StagedValue<Visibility> visibility()
+  {
+    return Visibility;
+  }
+}

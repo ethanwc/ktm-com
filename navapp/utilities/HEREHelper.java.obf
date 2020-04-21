@@ -1,0 +1,14 @@
+package com.ktm.navapp.utilities;
+
+import com.here.android.mpa.search.DiscoveryResult;
+import com.here.android.mpa.search.PlaceLink;
+
+public class HEREHelper
+{
+  public HEREHelper() {}
+  
+  public static PlaceLink discoveryResultToPlaceLink(DiscoveryResult paramDiscoveryResult)
+  {
+    return (PlaceLink)paramDiscoveryResult;
+  }
+}

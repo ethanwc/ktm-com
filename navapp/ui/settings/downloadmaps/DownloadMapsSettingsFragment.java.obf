@@ -1,0 +1,37 @@
+package com.ktm.navapp.ui.settings.downloadmaps;
+
+import android.os.Bundle;
+import android.widget.TextView;
+import butterknife.BindView;
+import com.ktm.navapp.downloading.offlinemaps.MapPackageInfo;
+import com.ktm.navapp.downloading.offlinemaps.OfflineMapsManager;
+import java.util.List;
+
+public class DownloadMapsSettingsFragment
+  extends MapsSettingsFragment
+{
+  @BindView(2131230860)
+  TextView mHeader;
+  
+  public DownloadMapsSettingsFragment() {}
+  
+  protected List<MapPackageInfo> getItems()
+  {
+    int i = getArguments().getInt("REGION_ID");
+    return OfflineMapsManager.getInstance().getCountriesInRegion(i);
+  }
+  
+  protected int getLayoutResource()
+  {
+    return 2131427394;
+  }
+  
+  protected void initialize()
+  {
+    super.initialize();
+    String str = getArguments().getString("REGION_NAME");
+    if (str != null) {
+      mHeader.setText(str.toUpperCase());
+    }
+  }
+}

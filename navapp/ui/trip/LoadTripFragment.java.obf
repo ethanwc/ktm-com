@@ -1,0 +1,333 @@
+package com.ktm.navapp.ui.trip;
+
+import android.content.Context;
+import android.os.Bundle;
+import android.text.Editable;
+import android.text.Html;
+import android.text.TextWatcher;
+import android.text.format.DateUtils;
+import android.view.KeyEvent;
+import android.view.LayoutInflater;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.View.OnFocusChangeListener;
+import android.view.View.OnTouchListener;
+import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.TextView;
+import android.widget.TextView.OnEditorActionListener;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.recyclerview.widget.RecyclerView.ViewHolder;
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+import com.daimajia.swipe.SwipeLayout;
+import com.daimajia.swipe.SwipeLayout.ShowMode;
+import com.daimajia.swipe.adapters.RecyclerSwipeAdapter;
+import com.daimajia.swipe.implments.SwipeItemRecyclerMangerImpl;
+import com.daimajia.swipe.util.Attributes.Mode;
+import com.ktm.navapp.logging.Log;
+import com.ktm.navapp.routing.RoutingManager;
+import com.ktm.navapp.search.SavedTrips;
+import com.ktm.navapp.search.Trip;
+import com.ktm.navapp.search.TripManager;
+import com.ktm.navapp.ui.base.NavAppBaseFragment;
+import com.ktm.navapp.ui.mainscreen.ExtendedLogoPosition;
+import com.ktm.navapp.ui.mainscreen.MainScreen;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.regex.Pattern;
+
+public class LoadTripFragment
+  extends NavAppBaseFragment
+{
+  final String TAG = LoadTripFragment.class.getSimpleName();
+  protected TripsAdapter mAdapter;
+  @BindView(2131231306)
+  protected TextView mDeleteText;
+  @BindView(2131231314)
+  protected EditText mEditText;
+  @BindView(2131231315)
+  protected RecyclerView mRvTrips;
+  @BindView(2131231168)
+  protected View mScreenDelete;
+  @BindView(2131231170)
+  protected View mScreenLoad;
+  protected Trip mTrip2Delete;
+  
+  public LoadTripFragment() {}
+  
+  private void showKeyboard(boolean paramBoolean)
+  {
+    InputMethodManager localInputMethodManager = (InputMethodManager)getContext().getSystemService("input_method");
+    if (paramBoolean)
+    {
+      if (localInputMethodManager != null) {
+        localInputMethodManager.showSoftInput(mEditText, 1);
+      }
+    }
+    else if (localInputMethodManager != null) {
+      localInputMethodManager.hideSoftInputFromWindow(mEditText.getWindowToken(), 0);
+    }
+  }
+  
+  void checkDelete(Trip paramTrip)
+  {
+    mTrip2Delete = paramTrip;
+    mDeleteText.setText(Html.fromHtml(getString(2131558684, new Object[] { Html.escapeHtml(paramTrip.getTitle()) })));
+    showDeleteConfirmation(true);
+  }
+  
+  public void onActivityCreated(Bundle paramBundle)
+  {
+    super.onActivityCreated(paramBundle);
+    showDeleteConfirmation(false);
+    mEditText.setText("");
+    mEditText.requestFocus();
+    mAdapter.loadData();
+  }
+  
+  @OnClick({2131231313})
+  public void onBackButton()
+  {
+    getActivity().getSupportFragmentManager().popBackStack();
+  }
+  
+  public View onCreateView(LayoutInflater paramLayoutInflater, ViewGroup paramViewGroup, Bundle paramBundle)
+  {
+    paramLayoutInflater = paramLayoutInflater.inflate(2131427407, paramViewGroup, false);
+    ButterKnife.bind(this, paramLayoutInflater);
+    ((MainScreen)getActivity()).configCopyrightIconPosition(ExtendedLogoPosition.BOTTOM_RIGHT);
+    mAdapter = new TripsAdapter(this);
+    mRvTrips.setLayoutManager(new LinearLayoutManager(getActivity()));
+    mRvTrips.setAdapter(mAdapter);
+    mEditText.setClickable(true);
+    mEditText.setOnTouchListener(new View.OnTouchListener()
+    {
+      public boolean onTouch(View paramAnonymousView, MotionEvent paramAnonymousMotionEvent)
+      {
+        if (paramAnonymousMotionEvent.getRawX() >= paramAnonymousView.getRight() - ((EditText)paramAnonymousView).getTotalPaddingRight())
+        {
+          if (paramAnonymousMotionEvent.getAction() == 1)
+          {
+            mEditText.getText().clear();
+            paramAnonymousView.performClick();
+          }
+          return true;
+        }
+        return false;
+      }
+    });
+    mEditText.setOnClickListener(new View.OnClickListener()
+    {
+      public void onClick(View paramAnonymousView)
+      {
+        LoadTripFragment.this.showKeyboard(true);
+      }
+    });
+    mEditText.addTextChangedListener(new TextWatcher()
+    {
+      public void afterTextChanged(Editable paramAnonymousEditable) {}
+      
+      public void beforeTextChanged(CharSequence paramAnonymousCharSequence, int paramAnonymousInt1, int paramAnonymousInt2, int paramAnonymousInt3) {}
+      
+      public void onTextChanged(CharSequence paramAnonymousCharSequence, int paramAnonymousInt1, int paramAnonymousInt2, int paramAnonymousInt3)
+      {
+        mAdapter.setFilter(paramAnonymousCharSequence.toString().trim());
+      }
+    });
+    mEditText.setOnEditorActionListener(new TextView.OnEditorActionListener()
+    {
+      public boolean onEditorAction(TextView paramAnonymousTextView, int paramAnonymousInt, KeyEvent paramAnonymousKeyEvent)
+      {
+        if (paramAnonymousInt == 3)
+        {
+          mAdapter.setFilter(mEditText.getText().toString().trim());
+          return true;
+        }
+        return false;
+      }
+    });
+    mEditText.setOnFocusChangeListener(new View.OnFocusChangeListener()
+    {
+      public void onFocusChange(View paramAnonymousView, boolean paramAnonymousBoolean)
+      {
+        LoadTripFragment.this.showKeyboard(paramAnonymousBoolean);
+      }
+    });
+    mRvTrips.setOnTouchListener(new View.OnTouchListener()
+    {
+      public boolean onTouch(View paramAnonymousView, MotionEvent paramAnonymousMotionEvent)
+      {
+        mRvTrips.requestFocus();
+        return false;
+      }
+    });
+    return paramLayoutInflater;
+  }
+  
+  @OnClick({2131231304})
+  public void onDeleteNo()
+  {
+    showDeleteConfirmation(false);
+    mAdapter.loadData();
+  }
+  
+  @OnClick({2131231305})
+  public void onDeleteYes()
+  {
+    showDeleteConfirmation(false);
+    SavedTrips.deleteFromSavedTrips(mTrip2Delete);
+    mAdapter.loadData();
+    if (SavedTrips.getSavedTrips().isEmpty()) {
+      getActivity().getSupportFragmentManager().popBackStack();
+    }
+  }
+  
+  void showDeleteConfirmation(boolean paramBoolean)
+  {
+    View localView = mScreenDelete;
+    int j = 4;
+    int i;
+    if (paramBoolean) {
+      i = 0;
+    } else {
+      i = 4;
+    }
+    localView.setVisibility(i);
+    localView = mScreenLoad;
+    if (paramBoolean) {
+      i = j;
+    } else {
+      i = 0;
+    }
+    localView.setVisibility(i);
+    showKeyboard(false);
+  }
+  
+  static class TripsAdapter
+    extends RecyclerSwipeAdapter<ItemViewHolder>
+  {
+    final String TAG = TripsAdapter.class.getSimpleName();
+    private final List<Trip> mData = new ArrayList();
+    private final List<Trip> mData0 = new ArrayList();
+    private Pattern mFilter;
+    private String mFilterText;
+    private final LoadTripFragment mFragment;
+    
+    TripsAdapter(LoadTripFragment paramLoadTripFragment)
+    {
+      mFragment = paramLoadTripFragment;
+      setMode(Attributes.Mode.Single);
+    }
+    
+    public int getItemCount()
+    {
+      return mData.size();
+    }
+    
+    public int getSwipeLayoutResourceId(int paramInt)
+    {
+      return 2131231135;
+    }
+    
+    void loadData()
+    {
+      Log.d(TAG, "loadData()");
+      mData0.clear();
+      List localList = SavedTrips.getSavedTrips();
+      mData0.addAll(localList);
+      setFilter(null);
+    }
+    
+    public void onBindViewHolder(final ItemViewHolder paramItemViewHolder, int paramInt)
+    {
+      final Trip localTrip = (Trip)mData.get(paramInt);
+      revealLayout.close(false);
+      revealLayout.setShowMode(SwipeLayout.ShowMode.PullOut);
+      mItemManger.bindView(itemView, paramInt);
+      textView1.setText(localTrip.getTitle());
+      textView2.setText(String.format("%s | %s", new Object[] { DateUtils.formatDateTime(mFragment.getContext(), dateMs, 131092), RoutingManager.formatDistance(length, false) }));
+      textContainer.setOnClickListener(new View.OnClickListener()
+      {
+        public void onClick(View paramAnonymousView)
+        {
+          Log.d(TAG, "LOAD: %s", new Object[] { localTrip.getTitle() });
+          TripManager.setTrip(SavedTrips.fixSavedOldTrip(localTrip));
+          ((MainScreen)getActivity()).setRoutePreviewView(false);
+        }
+      });
+      buttonEdit.setOnClickListener(new View.OnClickListener()
+      {
+        public void onClick(View paramAnonymousView)
+        {
+          Log.d(TAG, "EDIT: %s", new Object[] { localTrip.getTitle() });
+          paramItemViewHolderrevealLayout.close(false);
+          TripManager.setTrip(SavedTrips.fixSavedOldTrip(localTrip));
+          ((MainScreen)getActivity()).setRoutePreviewView(true);
+        }
+      });
+      buttonDelete.setOnClickListener(new View.OnClickListener()
+      {
+        public void onClick(View paramAnonymousView)
+        {
+          Log.d(TAG, "DELETE: %s", new Object[] { localTrip.getTitle() });
+          paramItemViewHolderrevealLayout.close(false);
+          checkDelete(localTrip);
+        }
+      });
+    }
+    
+    public ItemViewHolder onCreateViewHolder(ViewGroup paramViewGroup, int paramInt)
+    {
+      return new ItemViewHolder(LayoutInflater.from(paramViewGroup.getContext()).inflate(2131427408, paramViewGroup, false));
+    }
+    
+    public void setFilter(String paramString)
+    {
+      if (paramString != null) {
+        mFilterText = paramString.trim();
+      }
+      mData.clear();
+      paramString = mData0.iterator();
+      while (paramString.hasNext())
+      {
+        Trip localTrip = (Trip)paramString.next();
+        String str = mFilterText;
+        if ((str == null) || (str.isEmpty()) || (localTrip.getTitle().contains(mFilterText))) {
+          mData.add(localTrip);
+        }
+      }
+      notifyDataSetChanged();
+    }
+    
+    static class ItemViewHolder
+      extends RecyclerView.ViewHolder
+    {
+      final ImageButton buttonDelete;
+      final ImageButton buttonEdit;
+      final SwipeLayout revealLayout;
+      final View textContainer;
+      final TextView textView1;
+      final TextView textView2;
+      
+      ItemViewHolder(View paramView)
+      {
+        super();
+        revealLayout = ((SwipeLayout)paramView.findViewById(2131231135));
+        buttonEdit = ((ImageButton)paramView.findViewById(2131230812));
+        buttonDelete = ((ImageButton)paramView.findViewById(2131230811));
+        textContainer = paramView.findViewById(2131231308);
+        textView1 = ((TextView)paramView.findViewById(2131231309));
+        textView2 = ((TextView)paramView.findViewById(2131231310));
+      }
+    }
+  }
+}

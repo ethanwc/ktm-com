@@ -1,0 +1,35 @@
+package com.ktm.navapp.ui.welcome;
+
+import android.content.Intent;
+import android.os.Bundle;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+import com.ktm.navapp.ui.base.NavAppBaseActivity;
+
+public class WelcomeScreenGetReady
+  extends NavAppBaseActivity
+{
+  public WelcomeScreenGetReady() {}
+  
+  @OnClick({2131231344})
+  public void onCloseClicked()
+  {
+    startActivity(new Intent(this, WelcomeScreenSelectBike.class));
+    finish();
+  }
+  
+  public void onCreate(Bundle paramBundle)
+  {
+    super.onCreate(paramBundle);
+    setContentView(2131427370);
+    ButterKnife.bind(this);
+  }
+  
+  @OnClick({2131231346})
+  public void onOpenSettingsClicked()
+  {
+    Intent localIntent = new Intent("android.settings.BLUETOOTH_SETTINGS");
+    localIntent.setFlags(603979776);
+    startActivity(localIntent);
+  }
+}

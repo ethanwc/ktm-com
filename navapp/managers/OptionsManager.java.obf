@@ -1,0 +1,230 @@
+package com.ktm.navapp.managers;
+
+import com.here.android.mpa.common.MapEngine;
+import com.here.android.mpa.guidance.NavigationManager.UnitSystem;
+import com.ktm.navapp.logging.Log;
+import com.ktm.navapp.utilities.Storage;
+
+public class OptionsManager
+{
+  private static OptionsManager INSTANCE = new OptionsManager();
+  public static final String KEY_MAP_TYPE;
+  public static final String KEY_TRAFFIC_INFO;
+  public static final String KEY_UNIT_SYSTEM;
+  public static final String KEY_USE_OFFLINE_MAPS;
+  static final String TAG = OptionsManager.class.getSimpleName();
+  private MapManager mMapManager;
+  private String mMapType = null;
+  private boolean mTrafficInformation;
+  private NavigationManager.UnitSystem mUnitSystem;
+  private boolean mUseOfflineMaps;
+  
+  static
+  {
+    StringBuilder localStringBuilder = new StringBuilder();
+    localStringBuilder.append(TAG);
+    localStringBuilder.append(".MAP_TYPE");
+    KEY_MAP_TYPE = localStringBuilder.toString();
+    localStringBuilder = new StringBuilder();
+    localStringBuilder.append(TAG);
+    localStringBuilder.append(".TRAFFIC_INFORMATION");
+    KEY_TRAFFIC_INFO = localStringBuilder.toString();
+    localStringBuilder = new StringBuilder();
+    localStringBuilder.append(TAG);
+    localStringBuilder.append(".USE_OFFLINE_MAPS");
+    KEY_USE_OFFLINE_MAPS = localStringBuilder.toString();
+    localStringBuilder = new StringBuilder();
+    localStringBuilder.append(TAG);
+    localStringBuilder.append(".UNIT_SYSTEM");
+    KEY_UNIT_SYSTEM = localStringBuilder.toString();
+  }
+  
+  private OptionsManager() {}
+  
+  public static OptionsManager getInstance()
+  {
+    return INSTANCE;
+  }
+  
+  public String getMapType()
+  {
+    try
+    {
+      String str = mMapType;
+      return str;
+    }
+    finally
+    {
+      localObject = finally;
+      throw localObject;
+    }
+  }
+  
+  public boolean getTrafficInformation()
+  {
+    try
+    {
+      boolean bool = mTrafficInformation;
+      return bool;
+    }
+    finally
+    {
+      localObject = finally;
+      throw localObject;
+    }
+  }
+  
+  public NavigationManager.UnitSystem getUnitSystem()
+  {
+    try
+    {
+      NavigationManager.UnitSystem localUnitSystem = mUnitSystem;
+      return localUnitSystem;
+    }
+    finally
+    {
+      localObject = finally;
+      throw localObject;
+    }
+  }
+  
+  public boolean getUseOfflineMaps()
+  {
+    try
+    {
+      boolean bool = mUseOfflineMaps;
+      return bool;
+    }
+    finally
+    {
+      localObject = finally;
+      throw localObject;
+    }
+  }
+  
+  public void initialize()
+  {
+    if (mMapManager == null) {
+      mMapManager = MapManager.getInstance();
+    }
+    mMapType = Storage.get(KEY_MAP_TYPE, "normal.day");
+    mTrafficInformation = Storage.get(KEY_TRAFFIC_INFO, false);
+    mUseOfflineMaps = Storage.get(KEY_USE_OFFLINE_MAPS, false);
+    mUnitSystem = NavigationManager.UnitSystem.valueOf(Storage.get(KEY_UNIT_SYSTEM, NavigationManager.UnitSystem.METRIC.name()));
+  }
+  
+  public void navigateWithOptions()
+  {
+    mMapManager.setMapType(mMapType);
+    mMapManager.setTrafficInformation(Boolean.valueOf(mTrafficInformation));
+    MapEngine.setOnline(mUseOfflineMaps ^ true);
+  }
+  
+  public void setMapType(String paramString)
+  {
+    try
+    {
+      if (!mMapType.equals(paramString))
+      {
+        Log.d(TAG, "setMapType( %s )", new Object[] { paramString });
+        String str = KEY_MAP_TYPE;
+        mMapType = paramString;
+        Storage.set(str, paramString);
+        mMapManager.setMapType(mMapType);
+      }
+      return;
+    }
+    finally
+    {
+      paramString = finally;
+      throw paramString;
+    }
+  }
+  
+  public void setTrafficInformation(boolean paramBoolean)
+  {
+    try
+    {
+      if (mTrafficInformation != paramBoolean)
+      {
+        Log.d(TAG, "setTrafficInformation( %b )", new Object[] { Boolean.valueOf(paramBoolean) });
+        String str = KEY_TRAFFIC_INFO;
+        mTrafficInformation = paramBoolean;
+        Storage.set(str, paramBoolean);
+        mMapManager.setTrafficInformation(Boolean.valueOf(mTrafficInformation));
+      }
+      return;
+    }
+    finally
+    {
+      localObject = finally;
+      throw localObject;
+    }
+  }
+  
+  public void setUnitSystem(NavigationManager.UnitSystem paramUnitSystem)
+  {
+    try
+    {
+      if (mUnitSystem != paramUnitSystem)
+      {
+        Log.d(TAG, "setUnitSystem( %s )", new Object[] { paramUnitSystem.name() });
+        String str = KEY_UNIT_SYSTEM;
+        mUnitSystem = paramUnitSystem;
+        Storage.set(str, paramUnitSystem.name());
+      }
+      return;
+    }
+    finally
+    {
+      paramUnitSystem = finally;
+      throw paramUnitSystem;
+    }
+  }
+  
+  public void setUseOfflineMaps(boolean paramBoolean)
+  {
+    for (;;)
+    {
+      try
+      {
+        if (mUseOfflineMaps != paramBoolean)
+        {
+          String str = TAG;
+          boolean bool = true;
+          Log.d(str, "setUseOfflineMaps( %b )", new Object[] { Boolean.valueOf(paramBoolean) });
+          str = KEY_USE_OFFLINE_MAPS;
+          mUseOfflineMaps = paramBoolean;
+          Storage.set(str, paramBoolean);
+          if (!mUseOfflineMaps)
+          {
+            paramBoolean = bool;
+            MapEngine.setOnline(paramBoolean);
+          }
+        }
+        else
+        {
+          return;
+        }
+      }
+      finally {}
+      paramBoolean = false;
+    }
+  }
+  
+  public String toString()
+  {
+    StringBuilder localStringBuilder = new StringBuilder();
+    localStringBuilder.append("OptionsManager{mMapType='");
+    localStringBuilder.append(mMapType);
+    localStringBuilder.append('\'');
+    localStringBuilder.append(", mTrafficInformation=");
+    localStringBuilder.append(mTrafficInformation);
+    localStringBuilder.append(", mUseOfflineMaps=");
+    localStringBuilder.append(mUseOfflineMaps);
+    localStringBuilder.append(", mUnitSystem=");
+    localStringBuilder.append(mUnitSystem);
+    localStringBuilder.append('}');
+    return localStringBuilder.toString();
+  }
+}

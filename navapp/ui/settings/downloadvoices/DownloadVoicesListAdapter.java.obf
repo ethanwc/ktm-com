@@ -1,0 +1,174 @@
+package com.ktm.navapp.ui.settings.downloadvoices;
+
+import android.content.Context;
+import android.os.Environment;
+import android.os.StatFs;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.ImageButton;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+import com.ktm.navapp.downloading.voice.VoiceManager;
+import com.ktm.navapp.ui.mainscreen.MainScreen;
+import com.ktm.navapp.ui.settings.DownloadingList.DataStatus;
+import java.io.File;
+import java.util.List;
+
+public class DownloadVoicesListAdapter
+  extends VoicesListAdapter
+{
+  public DownloadVoicesListAdapter(Context paramContext, List<DownloadVoice> paramList)
+  {
+    super(paramContext, 2131427389, paramList);
+  }
+  
+  private void setToInstalled(ProgressBar paramProgressBar, ImageButton paramImageButton, TextView paramTextView, View... paramVarArgs)
+  {
+    paramProgressBar.setIndeterminate(false);
+    showViews(new View[] { paramImageButton, paramTextView });
+    hideViews(paramVarArgs);
+  }
+  
+  private void setToNotInstalled(ProgressBar paramProgressBar, ImageButton paramImageButton, TextView paramTextView, View... paramVarArgs)
+  {
+    paramProgressBar.setIndeterminate(false);
+    showViews(new View[] { paramImageButton, paramTextView });
+    hideViews(paramVarArgs);
+  }
+  
+  private void setToWaiting(DownloadVoice paramDownloadVoice, TextView paramTextView, ProgressBar paramProgressBar, ImageButton paramImageButton, View... paramVarArgs)
+  {
+    paramTextView.setText(2131558701);
+    paramProgressBar.setIndeterminate(true);
+    showViews(new View[] { paramTextView, paramProgressBar, paramImageButton });
+    hideViews(paramVarArgs);
+    if (VoiceManager.getInstance().isActualPackageId(Long.valueOf(packageId))) {
+      hideViews(new View[] { paramImageButton });
+    }
+  }
+  
+  protected void configButton(final DownloadVoice paramDownloadVoice, final View paramView)
+  {
+    final ImageButton localImageButton1 = (ImageButton)paramView.findViewById(2131230872);
+    final ImageButton localImageButton2 = (ImageButton)paramView.findViewById(2131230870);
+    final TextView localTextView1 = (TextView)paramView.findViewById(2131230874);
+    final TextView localTextView2 = (TextView)paramView.findViewById(2131230871);
+    paramView = (ProgressBar)paramView.findViewById(2131230873);
+    localTextView2.setText(paramDownloadVoice.getDownloadSize());
+    int i = 3.$SwitchMap$com$ktm$navapp$ui$settings$DownloadingList$DataStatus[status.ordinal()];
+    if (i != 1)
+    {
+      if (i != 2)
+      {
+        if (i != 3)
+        {
+          if (i == 4)
+          {
+            localTextView2.setText(paramDownloadVoice.getContentSize());
+            setToInstalled(paramView, localImageButton2, localTextView2, new View[] { localImageButton1, localTextView1, paramView });
+          }
+        }
+        else {
+          setToWaiting(paramDownloadVoice, localTextView1, paramView, localImageButton2, new View[] { localImageButton1, localTextView2 });
+        }
+      }
+      else
+      {
+        paramView.setIndeterminate(false);
+        paramView.setProgress(progress);
+        if (progress != 100)
+        {
+          StringBuilder localStringBuilder = new StringBuilder();
+          localStringBuilder.append(paramDownloadVoice.getDownloadedSize());
+          localStringBuilder.append("/");
+          localTextView1.setText(localStringBuilder.toString());
+          showViews(new View[] { localTextView1, localTextView2, paramView, localImageButton2 });
+          hideViews(new View[] { localImageButton1 });
+        }
+        else
+        {
+          localTextView1.setText(2131558524);
+          showViews(new View[] { localTextView1, paramView, localImageButton2 });
+          hideViews(new View[] { localImageButton1, localTextView2 });
+        }
+      }
+    }
+    else {
+      setToNotInstalled(paramView, localImageButton1, localTextView2, new View[] { localImageButton2, localTextView1, paramView });
+    }
+    localImageButton1.setOnClickListener(new View.OnClickListener()
+    {
+      public void onClick(View paramAnonymousView)
+      {
+        if (VoiceManagerIsNotAvailable())
+        {
+          setSwitchToOnlineView();
+          return;
+        }
+        paramAnonymousView = new StatFs(Environment.getDataDirectory().getPath());
+        if (paramDownloadVoicepackageContentSize > paramAnonymousView.getAvailableBytes() / 1024L)
+        {
+          ((MainScreen)getContext()).setNotEnoughMemoryErrorView();
+          return;
+        }
+        if (VoiceManager.getInstance().addToInstall(Long.valueOf(paramDownloadVoicepackageId)))
+        {
+          paramDownloadVoicestatus = DownloadingList.DataStatus.WAITING;
+          DownloadVoicesListAdapter.this.setToWaiting(paramDownloadVoice, localTextView1, paramView, localImageButton2, new View[] { localImageButton1, localTextView2 });
+          VoiceManager.getInstance().downloadUpdate();
+        }
+      }
+    });
+    localImageButton2.setOnClickListener(new View.OnClickListener()
+    {
+      public void onClick(View paramAnonymousView)
+      {
+        if (paramDownloadVoicestatus == DownloadingList.DataStatus.WAITING)
+        {
+          ProgressBar localProgressBar;
+          if (VoiceManager.getInstance().onInstallList(Long.valueOf(paramDownloadVoicepackageId)))
+          {
+            VoiceManager.getInstance().deleteFromInstallList(Long.valueOf(paramDownloadVoicepackageId));
+            paramDownloadVoicestatus = DownloadingList.DataStatus.NOT_INSTALLED;
+            paramAnonymousView = DownloadVoicesListAdapter.this;
+            localProgressBar = paramView;
+            paramAnonymousView.setToNotInstalled(localProgressBar, localImageButton1, localTextView2, new View[] { localImageButton2, localTextView1, localProgressBar });
+            VoiceManager.getInstance().downloadUpdate();
+            return;
+          }
+          if (VoiceManager.getInstance().onUninstallList(Long.valueOf(paramDownloadVoicepackageId)))
+          {
+            VoiceManager.getInstance().deleteFromUninstallList(Long.valueOf(paramDownloadVoicepackageId));
+            paramDownloadVoicestatus = DownloadingList.DataStatus.INSTALLED;
+            paramAnonymousView = DownloadVoicesListAdapter.this;
+            localProgressBar = paramView;
+            paramAnonymousView.setToInstalled(localProgressBar, localImageButton2, localTextView2, new View[] { localImageButton1, localTextView1, localProgressBar });
+            VoiceManager.getInstance().downloadUpdate();
+            return;
+          }
+          VoiceManager.getInstance().downloadUpdate();
+          return;
+        }
+        if (paramDownloadVoicestatus == DownloadingList.DataStatus.INSTALLING)
+        {
+          VoiceManager.getInstance().cancel();
+          paramDownloadVoicestatus = DownloadingList.DataStatus.WAITING;
+          VoiceManager.getInstance().resetDownloadProgress();
+          DownloadVoicesListAdapter.this.setToWaiting(paramDownloadVoice, localTextView1, paramView, localImageButton2, new View[] { localImageButton1, localTextView2 });
+          return;
+        }
+        if (VoiceManager.getInstance().addToUninstall(Long.valueOf(paramDownloadVoicepackageId)))
+        {
+          paramDownloadVoicestatus = DownloadingList.DataStatus.WAITING;
+          DownloadVoicesListAdapter.this.setToWaiting(paramDownloadVoice, localTextView1, paramView, localImageButton2, new View[] { localImageButton1, localTextView2 });
+          VoiceManager.getInstance().downloadUpdate();
+        }
+      }
+    });
+  }
+  
+  protected int getLayoutResource()
+  {
+    return 2131427389;
+  }
+}

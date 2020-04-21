@@ -1,0 +1,75 @@
+package com.ktm.navapp.ui.settings;
+
+import android.view.View;
+import butterknife.Unbinder;
+import butterknife.internal.DebouncingOnClickListener;
+import butterknife.internal.Utils;
+
+public class AboutFragment_ViewBinding
+  implements Unbinder
+{
+  private AboutFragment target;
+  private View view7f080007;
+  private View view7f080008;
+  private View view7f080009;
+  private View view7f08000a;
+  
+  public AboutFragment_ViewBinding(final AboutFragment paramAboutFragment, View paramView)
+  {
+    target = paramAboutFragment;
+    View localView = Utils.findRequiredView(paramView, 2131230730, "method 'onTermsSettings'");
+    view7f08000a = localView;
+    localView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramAboutFragment.onTermsSettings();
+      }
+    });
+    localView = Utils.findRequiredView(paramView, 2131230727, "method 'onFaqSettings'");
+    view7f080007 = localView;
+    localView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramAboutFragment.onFaqSettings();
+      }
+    });
+    localView = Utils.findRequiredView(paramView, 2131230729, "method 'onInfoSettings'");
+    view7f080009 = localView;
+    localView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramAboutFragment.onInfoSettings();
+      }
+    });
+    paramView = Utils.findRequiredView(paramView, 2131230728, "method 'closeAboutSettings'");
+    view7f080008 = paramView;
+    paramView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramAboutFragment.closeAboutSettings();
+      }
+    });
+  }
+  
+  public void unbind()
+  {
+    if (target != null)
+    {
+      target = null;
+      view7f08000a.setOnClickListener(null);
+      view7f08000a = null;
+      view7f080007.setOnClickListener(null);
+      view7f080007 = null;
+      view7f080009.setOnClickListener(null);
+      view7f080009 = null;
+      view7f080008.setOnClickListener(null);
+      view7f080008 = null;
+      return;
+    }
+    throw new IllegalStateException("Bindings already cleared.");
+  }
+}

@@ -1,0 +1,58 @@
+package com.ktm.navapp.ui.mainscreen;
+
+import android.content.Context;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+import com.ktm.navapp.App;
+import com.ktm.navapp.downloading.offlinemaps.MapDataUpdate;
+import com.ktm.navapp.logging.Log;
+import com.ktm.navapp.ui.base.NavAppBaseFragment;
+import com.ktm.navapp.ui.settings.downloadmaps.InstalledMapsSettingsFragment;
+import com.ktm.navapp.utilities.Utilities;
+import java.util.Locale;
+
+public class MapUpdateFragment
+  extends NavAppBaseFragment
+{
+  static final String TAG = MapUpdateFragment.class.getSimpleName();
+  @BindView(2131231050)
+  Button mBtUpdate;
+  
+  public MapUpdateFragment() {}
+  
+  public View onCreateView(LayoutInflater paramLayoutInflater, ViewGroup paramViewGroup, Bundle paramBundle)
+  {
+    paramLayoutInflater = paramLayoutInflater.inflate(2131427412, paramViewGroup, false);
+    ButterKnife.bind(this, paramLayoutInflater);
+    paramViewGroup = String.format(Locale.getDefault(), "%s<br><b>%s</b>", new Object[] { App.getContext().getString(2131558557), MapDataUpdate.getSizeText(100) });
+    mBtUpdate.setText(Utilities.replaceBoldWithFontAndSize(paramViewGroup, "fonts/TradeGothicLTStd-Cn18.otf", 16.0F));
+    return paramLayoutInflater;
+  }
+  
+  @OnClick({2131231051})
+  public void onSnoozeButton()
+  {
+    Log.d(TAG, "onSnoozeButton()");
+    getActivity().getSupportFragmentManager().popBackStack();
+  }
+  
+  @OnClick({2131231050})
+  public void onUpdateButton()
+  {
+    Log.d(TAG, "onUpdateButton()");
+    if (MapDataUpdate.startUpdate(getActivity()))
+    {
+      getActivity().getSupportFragmentManager().popBackStack();
+      getActivity().getSupportFragmentManager().beginTransaction().replace(2131231033, new InstalledMapsSettingsFragment()).addToBackStack(null).commit();
+    }
+  }
+}

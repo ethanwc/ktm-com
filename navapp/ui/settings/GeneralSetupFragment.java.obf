@@ -1,0 +1,96 @@
+package com.ktm.navapp.ui.settings;
+
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+import com.ktm.navapp.downloading.offlinemaps.MapDataUpdate;
+import com.ktm.navapp.ui.base.NavAppBaseFragment;
+import com.ktm.navapp.ui.settings.downloadmaps.InstalledMapsSettingsFragment;
+import com.ktm.navapp.ui.settings.downloadmaps.MapsStorageFragment;
+import com.ktm.navapp.ui.settings.downloadvoices.InstalledVoicesSettingsFragment;
+
+public class GeneralSetupFragment
+  extends NavAppBaseFragment
+{
+  private ClearHistorySettingsFragment mClearHistorySettingsFragment;
+  private InstalledVoicesSettingsFragment mInstalledVoicesSettingsFragment;
+  private TermsSettingsFragment mTermsSettingsFragment;
+  private UnitsSettingsFragment mUnitsSettingsFragment;
+  
+  public GeneralSetupFragment() {}
+  
+  private void setInstalledMapsSettingsView()
+  {
+    getActivity().getSupportFragmentManager().beginTransaction().replace(2131231033, new InstalledMapsSettingsFragment()).addToBackStack(null).commit();
+  }
+  
+  private void setInstalledVoicesSettingsView()
+  {
+    if (mInstalledVoicesSettingsFragment == null) {
+      mInstalledVoicesSettingsFragment = new InstalledVoicesSettingsFragment();
+    }
+    getActivity().getSupportFragmentManager().beginTransaction().replace(2131231033, mInstalledVoicesSettingsFragment).addToBackStack(null).commit();
+  }
+  
+  private void setUnitsSettingsView()
+  {
+    if (mUnitsSettingsFragment == null) {
+      mUnitsSettingsFragment = new UnitsSettingsFragment();
+    }
+    getActivity().getSupportFragmentManager().beginTransaction().replace(2131231033, mUnitsSettingsFragment).addToBackStack(null).commit();
+  }
+  
+  @OnClick({2131230910})
+  public void closeAdvancedSettings()
+  {
+    getActivity().getSupportFragmentManager().popBackStack();
+  }
+  
+  @OnClick({2131230912})
+  public void onClearHistory()
+  {
+    if (mClearHistorySettingsFragment == null) {
+      mClearHistorySettingsFragment = new ClearHistorySettingsFragment();
+    }
+    getActivity().getSupportFragmentManager().beginTransaction().replace(2131231033, mClearHistorySettingsFragment).addToBackStack(null).commit();
+  }
+  
+  public View onCreateView(LayoutInflater paramLayoutInflater, ViewGroup paramViewGroup, Bundle paramBundle)
+  {
+    paramLayoutInflater = paramLayoutInflater.inflate(2131427396, paramViewGroup, false);
+    ButterKnife.bind(this, paramLayoutInflater);
+    return paramLayoutInflater;
+  }
+  
+  @OnClick({2131230913})
+  public void onDownloadMapsSettings()
+  {
+    setInstalledMapsSettingsView();
+  }
+  
+  @OnClick({2131230980})
+  public void onStorageLocationSettings()
+  {
+    if (!MapDataUpdate.isUpdating()) {
+      getActivity().getSupportFragmentManager().beginTransaction().replace(2131231033, new MapsStorageFragment()).addToBackStack(null).commit();
+    }
+  }
+  
+  @OnClick({2131230914})
+  public void onUnitsSettings()
+  {
+    setUnitsSettingsView();
+  }
+  
+  @OnClick({2131230915})
+  public void onVoicesSettings()
+  {
+    setInstalledVoicesSettingsView();
+  }
+}

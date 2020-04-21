@@ -1,0 +1,60 @@
+package com.ktm.navapp.ui.settings.downloadvoices;
+
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
+import butterknife.OnClick;
+import com.ktm.navapp.downloading.DownloadManager;
+import com.ktm.navapp.downloading.DownloadManager.TaskType;
+import com.ktm.navapp.downloading.voice.VoiceManager;
+import com.ktm.navapp.downloading.voice.VoiceManager.VoiceError;
+import com.ktm.navapp.downloading.voice.VoicePackageInfo;
+import com.ktm.navapp.ui.mainscreen.MainScreen;
+import com.ktm.navapp.ui.settings.DownloadingList;
+import com.ktm.navapp.ui.settings.DownloadingList.DataStatus;
+
+public abstract class VoicesSettingsFragment
+  extends DownloadingList<VoicePackageInfo, DownloadVoice, Long, VoiceManager.VoiceError>
+{
+  public VoicesSettingsFragment() {}
+  
+  @OnClick({2131231060})
+  public void closeOfflineMapsSettings()
+  {
+    getActivity().getSupportFragmentManager().popBackStack();
+  }
+  
+  protected DownloadVoice createDownloadItem(VoicePackageInfo paramVoicePackageInfo)
+  {
+    if ((!mDownloadManager.onUninstallList(Long.valueOf(id))) && ((mDownloadManager.getTaskType() != DownloadManager.TaskType.UNINSTALL) || (!mDownloadManager.isActualPackageId(Long.valueOf(id)))))
+    {
+      if (isLocal) {
+        return new DownloadVoice(paramVoicePackageInfo, DownloadingList.DataStatus.INSTALLED, 100);
+      }
+      if (mDownloadManager.isActualPackageId(Long.valueOf(id))) {
+        return new DownloadVoice(paramVoicePackageInfo, DownloadingList.DataStatus.INSTALLING, mDownloadManager.getDownloadProgress());
+      }
+      if (mDownloadManager.onInstallList(Long.valueOf(id))) {
+        return new DownloadVoice(paramVoicePackageInfo, DownloadingList.DataStatus.WAITING, 0);
+      }
+      return new DownloadVoice(paramVoicePackageInfo, DownloadingList.DataStatus.NOT_INSTALLED, 0);
+    }
+    return new DownloadVoice(paramVoicePackageInfo, DownloadingList.DataStatus.WAITING, 0);
+  }
+  
+  protected int getLayoutResource()
+  {
+    return 2131427405;
+  }
+  
+  protected void initializeManager()
+  {
+    mDownloadManager = VoiceManager.getInstance();
+    VoiceManager.getInstance().setMainScreen((MainScreen)getActivity());
+  }
+  
+  protected void update()
+  {
+    VoiceManager.getInstance().isSelectedPackageInstalled();
+    super.update();
+  }
+}

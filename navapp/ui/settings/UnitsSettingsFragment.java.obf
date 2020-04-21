@@ -1,0 +1,106 @@
+package com.ktm.navapp.ui.settings;
+
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.RadioButton;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+import com.here.android.mpa.guidance.NavigationManager.UnitSystem;
+import com.ktm.navapp.managers.OptionsManager;
+import com.ktm.navapp.ui.base.NavAppBaseFragment;
+
+public class UnitsSettingsFragment
+  extends NavAppBaseFragment
+{
+  @BindView(2131231322)
+  protected RadioButton mImperialUkRadioButton;
+  @BindView(2131231324)
+  protected RadioButton mImperialUsRadioButton;
+  @BindView(2131231326)
+  protected RadioButton mMetricRadioButton;
+  private OptionsManager mOptionsManager;
+  
+  public UnitsSettingsFragment() {}
+  
+  private void configRadioButtons()
+  {
+    NavigationManager.UnitSystem localUnitSystem = mOptionsManager.getUnitSystem();
+    if (localUnitSystem == NavigationManager.UnitSystem.METRIC)
+    {
+      mMetricRadioButton.setChecked(true);
+      return;
+    }
+    if (localUnitSystem == NavigationManager.UnitSystem.IMPERIAL)
+    {
+      mImperialUkRadioButton.setChecked(true);
+      return;
+    }
+    if (localUnitSystem == NavigationManager.UnitSystem.IMPERIAL_US) {
+      mImperialUsRadioButton.setChecked(true);
+    }
+  }
+  
+  @OnClick({2131231319})
+  public void closeUnitsSettings()
+  {
+    getActivity().getSupportFragmentManager().popBackStack();
+  }
+  
+  @OnClick({2131231321})
+  public void onClickImperialUkLabel()
+  {
+    mImperialUkRadioButton.performClick();
+    onClickImperialUkRadioButton();
+  }
+  
+  @OnClick({2131231322})
+  public void onClickImperialUkRadioButton()
+  {
+    mOptionsManager.setUnitSystem(NavigationManager.UnitSystem.IMPERIAL);
+  }
+  
+  @OnClick({2131231323})
+  public void onClickImperialUsLabel()
+  {
+    mImperialUsRadioButton.performClick();
+    onClickImperialUsRadioButton();
+  }
+  
+  @OnClick({2131231324})
+  public void onClickImperialUsRadioButton()
+  {
+    mOptionsManager.setUnitSystem(NavigationManager.UnitSystem.IMPERIAL_US);
+  }
+  
+  @OnClick({2131231325})
+  public void onClickMetricLabel()
+  {
+    mMetricRadioButton.performClick();
+    onClickMetricRadioButton();
+  }
+  
+  @OnClick({2131231326})
+  public void onClickMetricRadioButton()
+  {
+    mOptionsManager.setUnitSystem(NavigationManager.UnitSystem.METRIC);
+  }
+  
+  public View onCreateView(LayoutInflater paramLayoutInflater, ViewGroup paramViewGroup, Bundle paramBundle)
+  {
+    paramLayoutInflater = paramLayoutInflater.inflate(2131427436, paramViewGroup, false);
+    ButterKnife.bind(this, paramLayoutInflater);
+    mOptionsManager = OptionsManager.getInstance();
+    return paramLayoutInflater;
+  }
+  
+  public void onResume()
+  {
+    super.onResume();
+    configRadioButtons();
+  }
+}

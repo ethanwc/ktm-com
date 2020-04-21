@@ -1,0 +1,271 @@
+package com.ktm.navapp.ui.search;
+
+import android.content.Context;
+import android.graphics.PointF;
+import android.text.Html;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.TextView;
+import com.here.android.mpa.cluster.ClusterViewObject;
+import com.here.android.mpa.common.GeoCoordinate;
+import com.here.android.mpa.common.ViewObject;
+import com.here.android.mpa.common.ViewObject.Type;
+import com.here.android.mpa.mapping.Location;
+import com.here.android.mpa.mapping.LocationInfo;
+import com.here.android.mpa.mapping.LocationInfo.Field;
+import com.here.android.mpa.mapping.MapCartoMarker;
+import com.here.android.mpa.mapping.MapMarker;
+import com.here.android.mpa.mapping.MapObject;
+import com.here.android.mpa.mapping.MapOverlay;
+import com.here.android.mpa.mapping.MapProxyObject;
+import com.here.android.mpa.mapping.TransitStopInfo;
+import com.here.android.mpa.mapping.TransitStopObject;
+import com.here.android.mpa.search.Category;
+import com.here.android.mpa.search.ContactDetail;
+import com.here.android.mpa.search.ExtendedAttribute;
+import com.here.android.mpa.search.Place;
+import com.ktm.navapp.App;
+import com.ktm.navapp.logging.Log;
+import com.ktm.navapp.managers.MapManager;
+import com.ktm.navapp.search.Dealers;
+import com.ktm.navapp.search.PlacesApi;
+import com.ktm.navapp.utilities.Callback;
+import com.ktm.navapp.utilities.Events;
+import com.ktm.navapp.utilities.Utilities;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
+
+public class PoiDetails
+{
+  static final String BUBBLE_ID = "PoiInfoBubble";
+  static final int BUBBLE_OFFSET = Utilities.pxFromDp(30.0F);
+  static final String TAG = PoiDetails.class.getSimpleName();
+  
+  public PoiDetails() {}
+  
+  static boolean isBubbleShown()
+  {
+    try
+    {
+      MapOverlay localMapOverlay = MapManager.getInstance().getOverlay("PoiInfoBubble");
+      boolean bool;
+      if (localMapOverlay != null) {
+        bool = true;
+      } else {
+        bool = false;
+      }
+      return bool;
+    }
+    finally
+    {
+      localObject = finally;
+      throw localObject;
+    }
+  }
+  
+  public static boolean onMapObjectsSelected(List<ViewObject> paramList)
+  {
+    Log.d(TAG, "onMapObjectsSelected(%d)", new Object[] { Integer.valueOf(paramList.size()) });
+    Object localObject1 = paramList.iterator();
+    while (((Iterator)localObject1).hasNext())
+    {
+      paramList = (ViewObject)((Iterator)localObject1).next();
+      Object localObject2;
+      if (paramList.getBaseType() == ViewObject.Type.USER_OBJECT)
+      {
+        localObject2 = (MapObject)paramList;
+        Log.d(TAG, "MapObject: %s", new Object[] { String.valueOf(((MapObject)localObject2).getType()) });
+        switch (4.$SwitchMap$com$here$android$mpa$mapping$MapObject$Type[localObject2.getType().ordinal()])
+        {
+        case 2: 
+        case 3: 
+        case 4: 
+        case 5: 
+        case 6: 
+        case 7: 
+        case 8: 
+        case 9: 
+        case 10: 
+        default: 
+          break;
+        case 1: 
+          paramList = Dealers.getDealer(((MapMarker)paramList).getCoordinate());
+          if (paramList == null) {
+            continue;
+          }
+          Events.postEvent(paramList);
+          return true;
+        }
+      }
+      else if (paramList.getBaseType() == ViewObject.Type.PROXY_OBJECT)
+      {
+        paramList = (MapProxyObject)paramList;
+        Log.d(TAG, "MapProxyObject: %s", new Object[] { String.valueOf(paramList.getType()) });
+        switch (4.$SwitchMap$com$here$android$mpa$mapping$MapProxyObject$Type[paramList.getType().ordinal()])
+        {
+        case 1: 
+        case 2: 
+        case 3: 
+        case 4: 
+        case 5: 
+        case 7: 
+        default: 
+          break;
+        case 9: 
+          Events.postOnMainThread(new Runnable()
+          {
+            public void run()
+            {
+              MapManager.getInstance().zoomTo(((ClusterViewObject)val$po).getBoundingBox(), true, 30.0F, 30.0F);
+            }
+          });
+          return true;
+        case 8: 
+          localObject2 = ((MapCartoMarker)paramList).getLocation();
+          if (localObject2 != null) {
+            paramList = ((Location)localObject2).getInfo();
+          } else {
+            paramList = null;
+          }
+          if (paramList == null) {
+            continue;
+          }
+          localObject1 = new GeoCoordinate(((Location)localObject2).getCoordinate().getLatitude(), ((Location)localObject2).getCoordinate().getLongitude());
+          localObject2 = paramList.getField(LocationInfo.Field.PLACE_NAME);
+          final String str1 = paramList.getField(LocationInfo.Field.PLACE_PHONE_NUMBER);
+          String str2 = paramList.getField(LocationInfo.Field.PLACE_CATEGORY);
+          StringBuilder localStringBuilder = new StringBuilder();
+          localStringBuilder.append("(");
+          localStringBuilder.append(str2);
+          localStringBuilder.append(")");
+          showInfoBubble((GeoCoordinate)localObject1, (String)localObject2, new String[] { localStringBuilder.toString(), str1 });
+          PlacesApi.details(paramList.getField(LocationInfo.Field.FOREIGN_ID_SOURCE), paramList.getField(LocationInfo.Field.FOREIGN_ID), new Callback()
+          {
+            public void onResult(Place paramAnonymousPlace)
+            {
+              if (paramAnonymousPlace != null)
+              {
+                String str1 = val$category;
+                if (!paramAnonymousPlace.getCategories().isEmpty()) {
+                  str1 = ((Category)paramAnonymousPlace.getCategories().get(0)).getName();
+                }
+                Object localObject2 = paramAnonymousPlace.getContacts().iterator();
+                Object localObject1 = "";
+                String str3 = "";
+                String str2 = str3;
+                while (((Iterator)localObject2).hasNext())
+                {
+                  localObject3 = (ContactDetail)((Iterator)localObject2).next();
+                  if ("email".equals(((ContactDetail)localObject3).getType())) {
+                    str3 = ((ContactDetail)localObject3).getValue();
+                  } else if ("website".equals(((ContactDetail)localObject3).getType())) {
+                    str2 = ((ContactDetail)localObject3).getValue();
+                  }
+                }
+                localObject2 = paramAnonymousPlace.getExtendedAttributes().iterator();
+                do
+                {
+                  paramAnonymousPlace = (Place)localObject1;
+                  if (!((Iterator)localObject2).hasNext()) {
+                    break;
+                  }
+                  paramAnonymousPlace = (ExtendedAttribute)((Iterator)localObject2).next();
+                } while (!"openingHours".equals(paramAnonymousPlace.getId()));
+                paramAnonymousPlace = paramAnonymousPlace.getText();
+                localObject1 = val$center;
+                localObject2 = val$name;
+                Object localObject3 = new StringBuilder();
+                ((StringBuilder)localObject3).append("(");
+                ((StringBuilder)localObject3).append(str1);
+                ((StringBuilder)localObject3).append(")");
+                PoiDetails.showInfoBubble((GeoCoordinate)localObject1, (String)localObject2, new String[] { ((StringBuilder)localObject3).toString(), str1, str3, str2, paramAnonymousPlace });
+              }
+            }
+          });
+          return true;
+        case 6: 
+          paramList = ((TransitStopObject)paramList).getTransitStopInfo();
+          if (paramList == null) {
+            continue;
+          }
+          showInfoBubble(new GeoCoordinate(paramList.getCoordinate().getLatitude(), paramList.getCoordinate().getLongitude()), paramList.getOfficialName(), new String[] { paramList.getInformalName() });
+          return true;
+        }
+      }
+      else
+      {
+        Log.d(TAG, "ViewObject: %s", new Object[] { String.valueOf(paramList.getBaseType()) });
+      }
+    }
+    return false;
+  }
+  
+  public static boolean onTapEvent()
+  {
+    removeInfoBubble();
+    return false;
+  }
+  
+  static void removeInfoBubble()
+  {
+    try
+    {
+      Log.d(TAG, "removeInfoBubble()");
+      PlacesApi.cancelDetails();
+      MapManager.getInstance().removeOverlay("PoiInfoBubble");
+      return;
+    }
+    finally
+    {
+      localObject = finally;
+      throw localObject;
+    }
+  }
+  
+  static void showInfoBubble(final GeoCoordinate paramGeoCoordinate, final String paramString, String... paramVarArgs)
+  {
+    try
+    {
+      Log.d(TAG, "showInfoBubble(%s)", new Object[] { paramString });
+      if ((paramString != null) && (!paramString.trim().isEmpty()))
+      {
+        Events.postOnMainThread(new Runnable()
+        {
+          public void run()
+          {
+            StringBuilder localStringBuilder = new StringBuilder();
+            Object localObject = val$attr;
+            int j = localObject.length;
+            int i = 0;
+            while (i < j)
+            {
+              String str = localObject[i];
+              if ((str != null) && (!str.isEmpty()))
+              {
+                if (localStringBuilder.length() != 0) {
+                  localStringBuilder.append("\n");
+                }
+                localStringBuilder.append(Html.fromHtml(str));
+              }
+              i += 1;
+            }
+            localObject = ((LayoutInflater)Objects.requireNonNull(App.getContext().getSystemService("layout_inflater"))).inflate(2131427437, null);
+            ((TextView)((View)localObject).findViewById(2131231291)).setText(paramString);
+            ((TextView)((View)localObject).findViewById(2131230805)).setText(localStringBuilder.toString());
+            ((View)localObject).setOnClickListener(new View.OnClickListener()
+            {
+              public void onClick(View paramAnonymous2View) {}
+            });
+            ((View)localObject).measure(0, 0);
+            MapManager.getInstance().setOverlay("PoiInfoBubble", new MapOverlay((View)localObject, paramGeoCoordinate).setAnchorPoint(new PointF(((View)localObject).getMeasuredWidth() / 2, ((View)localObject).getMeasuredHeight() - PoiDetails.BUBBLE_OFFSET)));
+          }
+        });
+        return;
+      }
+      return;
+    }
+    finally {}
+  }
+}

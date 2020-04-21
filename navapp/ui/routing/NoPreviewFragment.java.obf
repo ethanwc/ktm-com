@@ -1,0 +1,264 @@
+package com.ktm.navapp.ui.routing;
+
+import android.content.Context;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+import com.here.android.mpa.common.GeoPosition;
+import com.here.android.mpa.guidance.NavigationManager;
+import com.here.android.mpa.guidance.NavigationManager.Error;
+import com.here.android.mpa.mapping.MapRoute;
+import com.ktm.navapp.guidance.GuidanceManager;
+import com.ktm.navapp.logging.Log;
+import com.ktm.navapp.managers.MapManager;
+import com.ktm.navapp.routing.RouteResult;
+import com.ktm.navapp.routing.RoutingCallback;
+import com.ktm.navapp.routing.RoutingManager;
+import com.ktm.navapp.search.SavedTrips;
+import com.ktm.navapp.search.Trip;
+import com.ktm.navapp.search.TripManager;
+import com.ktm.navapp.services.NavigationEvent;
+import com.ktm.navapp.services.NavigationEvent.EventType;
+import com.ktm.navapp.ui.base.NavAppBaseFragment;
+import com.ktm.navapp.ui.mainscreen.OnBackPressedHandler;
+import com.ktm.navapp.utilities.Events;
+import com.ktm.navapp.utilities.NavigationManagerProxy;
+import com.ktm.navapp.utilities.Utilities;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+
+public class NoPreviewFragment
+  extends NavAppBaseFragment
+  implements OnBackPressedHandler
+{
+  static final String TAG = NoPreviewFragment.class.getSimpleName();
+  private static Trip mNewChangesTrip;
+  private final Runnable mContinueAfterSave = new Runnable()
+  {
+    public void run()
+    {
+      NoPreviewFragment.this.showScreen(null);
+      calculateNewRoute();
+    }
+  };
+  private boolean mIsResumed = false;
+  private boolean mPopAfterPause = false;
+  @BindView(2131230947)
+  protected View mScreenChangesSaved;
+  @BindView(2131230949)
+  protected View mScreenFailed;
+  @BindView(2131230950)
+  protected View mScreenFindingRoute;
+  @BindView(2131230954)
+  protected View mScreenSaveChanges;
+  @BindView(2131230955)
+  protected TextView mTvSaveText;
+  @BindView(2131230956)
+  protected TextView mTvSaveTripName;
+  
+  public NoPreviewFragment() {}
+  
+  private void showScreen(View paramView)
+  {
+    if (getActivity() != null)
+    {
+      View localView = mScreenSaveChanges;
+      int j = 0;
+      int i;
+      if (paramView == localView) {
+        i = 0;
+      } else {
+        i = 4;
+      }
+      localView.setVisibility(i);
+      localView = mScreenChangesSaved;
+      if (paramView == localView) {
+        i = 0;
+      } else {
+        i = 4;
+      }
+      localView.setVisibility(i);
+      localView = mScreenFindingRoute;
+      if (paramView == localView) {
+        i = 0;
+      } else {
+        i = 4;
+      }
+      localView.setVisibility(i);
+      localView = mScreenFailed;
+      if (paramView == localView) {
+        i = j;
+      } else {
+        i = 4;
+      }
+      localView.setVisibility(i);
+    }
+  }
+  
+  void calculateNewRoute()
+  {
+    final Trip localTrip = TripManager.getTrip();
+    GeoPosition localGeoPosition = MapManager.getInstance().getCurrentPosition();
+    if ((localGeoPosition != null) && (localGeoPosition.isValid()))
+    {
+      showScreen(mScreenFindingRoute);
+      RoutingManager.getInstance().loadRoute(localGeoPosition.getCoordinate(), localTrip, new RoutingCallback()
+      {
+        public void onProgress(int paramAnonymousInt) {}
+        
+        public void onResult(RouteResult paramAnonymousRouteResult, boolean paramAnonymousBoolean)
+        {
+          if (getActivity() != null)
+          {
+            if (paramAnonymousRouteResult == RouteResult.CANCELLED) {
+              return;
+            }
+            if (paramAnonymousRouteResult != RouteResult.SUCCESS)
+            {
+              Log.w(NoPreviewFragment.TAG, "calculateNewRoute() ROUTING FAILED: %s", new Object[] { String.valueOf(paramAnonymousRouteResult) });
+              paramAnonymousRouteResult = NoPreviewFragment.this;
+              paramAnonymousRouteResult.showScreen(mScreenFailed);
+              return;
+            }
+            localTriplength = RoutingManager.getInstance().getDistanceMeters();
+            paramAnonymousRouteResult = RoutingManager.getInstance().getSelectedRoute().getRoute();
+            NavigationManagerProxy.getInstance().pause();
+            NavigationManager.Error localError = NavigationManagerProxy.getInstance().setRoute(paramAnonymousRouteResult);
+            if (localError != NavigationManager.Error.NONE)
+            {
+              Log.w(NoPreviewFragment.TAG, "calculateNewRoute() SET ROUTE FAILED: %s", new Object[] { String.valueOf(localError) });
+              paramAnonymousRouteResult = NoPreviewFragment.this;
+              paramAnonymousRouteResult.showScreen(mScreenFailed);
+              NavigationManagerProxy.getInstance().resume();
+              return;
+            }
+            TripManager.setTrip(localTrip);
+            if (NoPreviewFragment.mNewChangesTrip != null) {
+              TripManager.setChangesTrackingTrip(NoPreviewFragment.mNewChangesTrip);
+            }
+            GuidanceManager.getInstance().setRoute(paramAnonymousRouteResult);
+            TripManager.onGuidanceStart();
+            Events.postEvent(new NavigationEvent(NavigationEvent.EventType.GUIDANCE_STARTED));
+            NavigationManagerProxy.getInstance().resume();
+            if (mIsResumed)
+            {
+              getActivity().getSupportFragmentManager().popBackStack();
+              return;
+            }
+            NoPreviewFragment.access$302(NoPreviewFragment.this, true);
+          }
+        }
+      });
+      return;
+    }
+    Log.w(TAG, "calculateNewRoute() NO VALID POSITION");
+    showScreen(mScreenFailed);
+  }
+  
+  public void onActivityCreated(Bundle paramBundle)
+  {
+    super.onActivityCreated(paramBundle);
+    Object localObject1 = TripManager.getBackupTrip();
+    Object localObject2 = TripManager.getTrip();
+    paramBundle = TripManager.getChangesTrackingTrip();
+    if ((saved) && (name != null) && (!((Trip)localObject1).equalsForRouting(localObject2)))
+    {
+      paramBundle.copyRouteOptions((Trip)localObject2);
+      ArrayList localArrayList = paramBundle.getWaypoints();
+      localObject1 = ((Trip)localObject1).getWaypointsRemoveMyLocation();
+      localObject2 = ((Trip)localObject2).getWaypointsRemoveMyLocation();
+      Object localObject3 = TAG;
+      boolean bool;
+      if (localArrayList.size() >= ((List)localObject1).size()) {
+        bool = true;
+      } else {
+        bool = false;
+      }
+      Log.Assert((String)localObject3, bool);
+      localObject3 = localArrayList.subList(localArrayList.size() - ((List)localObject1).size(), localArrayList.size());
+      Log.Assert(TAG, ((List)localObject1).equals(localObject3));
+      ((List)localObject3).clear();
+      localArrayList.addAll((Collection)localObject2);
+      waypoints.clear();
+      waypoints.addAll(localArrayList);
+      mNewChangesTrip = paramBundle;
+      mTvSaveTripName.setText(String.format(Locale.getDefault(), "\"%s\"", new Object[] { paramBundle.getTitle() }));
+      showScreen(mScreenSaveChanges);
+      return;
+    }
+    mNewChangesTrip = null;
+    showScreen(null);
+    calculateNewRoute();
+  }
+  
+  public boolean onBackPressed()
+  {
+    onCancelOrFailed();
+    return true;
+  }
+  
+  @OnClick({2131230951, 2131230948})
+  public void onCancelOrFailed()
+  {
+    Log.d(TAG, "onCancelOrFailed()");
+    RoutingManager.getInstance().cancelCalculation();
+    TripManager.restoreTrip(false);
+    getActivity().getSupportFragmentManager().popBackStack();
+  }
+  
+  public View onCreateView(LayoutInflater paramLayoutInflater, ViewGroup paramViewGroup, Bundle paramBundle)
+  {
+    paramLayoutInflater = paramLayoutInflater.inflate(2131427401, paramViewGroup, false);
+    ButterKnife.bind(this, paramLayoutInflater);
+    mTvSaveText.setText(Utilities.replaceBoldWithColor(getContext().getString(2131558512), getContext().getColor(2131034172)));
+    return paramLayoutInflater;
+  }
+  
+  public void onPause()
+  {
+    super.onPause();
+    mIsResumed = false;
+  }
+  
+  public void onResume()
+  {
+    super.onResume();
+    mIsResumed = true;
+    if (mPopAfterPause) {
+      getActivity().getSupportFragmentManager().popBackStack();
+    }
+  }
+  
+  @OnClick({2131230933})
+  public void onSaveTripNo()
+  {
+    Log.d(TAG, "onSaveTripNo()");
+    calculateNewRoute();
+  }
+  
+  @OnClick({2131230934})
+  public void onSaveTripYes()
+  {
+    Log.d(TAG, "onSaveTripYes()");
+    SavedTrips.addToSavedTrips(mNewChangesTrip);
+    showScreen(mScreenChangesSaved);
+    Events.postDelayed(mContinueAfterSave, 2000L);
+  }
+  
+  @OnClick({2131230947})
+  public void onSavedOk()
+  {
+    Log.d(TAG, "onSavedOk()");
+    Events.cancel(mContinueAfterSave);
+    calculateNewRoute();
+  }
+}

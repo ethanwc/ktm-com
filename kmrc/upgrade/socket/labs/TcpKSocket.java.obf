@@ -1,0 +1,116 @@
+package com.ktm.kmrc.io.socket.tcp;
+
+import com.ktm.kmrc.io.Connection.LinkingListener;
+import com.ktm.kmrc.io.KSocket;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.UnknownHostException;
+
+public abstract class TcpKSocket
+  extends KSocket
+{
+  private String hostname;
+  private InetAddress inetAddress;
+  private int port;
+  private ServerSocket serverSocket = null;
+  private Socket transportSocket = null;
+  
+  protected TcpKSocket(String paramString, int paramInt)
+    throws UnknownHostException
+  {
+    inetAddress = InetAddress.getByName(paramString);
+    hostname = paramString;
+    port = paramInt;
+  }
+  
+  void accept(Connection.LinkingListener paramLinkingListener)
+    throws IOException
+  {
+    serverSocket = new ServerSocket(port, 1, inetAddress);
+    port = serverSocket.getLocalPort();
+    paramLinkingListener.linking();
+    transportSocket = serverSocket.accept();
+    in = new DataInputStream(transportSocket.getInputStream());
+    out = new DataOutputStream(transportSocket.getOutputStream());
+    serverSocket.close();
+  }
+  
+  public void close()
+    throws IOException
+  {
+    Object localObject = transportSocket;
+    if (localObject != null) {
+      ((Socket)localObject).close();
+    }
+    localObject = serverSocket;
+    if (localObject != null) {
+      ((ServerSocket)localObject).close();
+    }
+  }
+  
+  protected void connect(Connection.LinkingListener paramLinkingListener)
+    throws IOException
+  {
+    paramLinkingListener.linking();
+    transportSocket = new Socket(inetAddress, port);
+    in = new DataInputStream(transportSocket.getInputStream());
+    out = new DataOutputStream(transportSocket.getOutputStream());
+  }
+  
+  public boolean equals(Object paramObject)
+  {
+    boolean bool2 = false;
+    if (paramObject == null) {
+      return false;
+    }
+    if (paramObject == this) {
+      return true;
+    }
+    if (!(paramObject instanceof TcpKSocket)) {
+      return false;
+    }
+    paramObject = (TcpKSocket)paramObject;
+    boolean bool1 = bool2;
+    if (inetAddress.equals(inetAddress))
+    {
+      bool1 = bool2;
+      if (port == port) {
+        bool1 = true;
+      }
+    }
+    return bool1;
+  }
+  
+  public int port()
+  {
+    return port;
+  }
+  
+  public String toString()
+  {
+    Object localObject = transportSocket;
+    if ((localObject != null) && (((Socket)localObject).isConnected()))
+    {
+      localObject = new StringBuilder();
+      ((StringBuilder)localObject).append("tcp://");
+      ((StringBuilder)localObject).append(transportSocket.getLocalAddress().getHostAddress());
+      ((StringBuilder)localObject).append(":");
+      ((StringBuilder)localObject).append(transportSocket.getLocalPort());
+      ((StringBuilder)localObject).append(" -> tcp://");
+      ((StringBuilder)localObject).append(transportSocket.getInetAddress().getHostAddress());
+      ((StringBuilder)localObject).append(":");
+      ((StringBuilder)localObject).append(transportSocket.getPort());
+      return ((StringBuilder)localObject).toString();
+    }
+    localObject = new StringBuilder();
+    ((StringBuilder)localObject).append("tcp://");
+    ((StringBuilder)localObject).append(hostname);
+    ((StringBuilder)localObject).append(":");
+    ((StringBuilder)localObject).append(port);
+    return ((StringBuilder)localObject).toString();
+  }
+}

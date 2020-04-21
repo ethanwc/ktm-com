@@ -1,0 +1,238 @@
+package com.ktm.navapp.connectivity.endpoints;
+
+import com.ktm.kmrc.io.KSocket;
+import com.ktm.kmrc.services.navigation.NavClientConnection;
+import com.ktm.kmrc.services.navigation.NavServiceListener;
+import com.ktm.kmrc.services.navigation.NavigationRequest;
+import com.ktm.navapp.connectivity.bluetooth.BtControl;
+import com.ktm.navapp.connectivity.bluetooth.BtDashboardSocket;
+import com.ktm.navapp.connectivity.bluetooth.TcpDashboardSocket;
+import com.ktm.navapp.logging.Log;
+import com.ktm.navapp.utilities.Storage;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+
+public class DashboardManager
+{
+  private static final String KEY_PAIREDDASHBOARDS = "PairedDashboards";
+  private static DashboardManager instance;
+  private final BtControl btControl = BtControl.getInstance();
+  private DashboardConnectionListener dashboardConnectionListener = null;
+  private NavClientConnection navClientConnection = new NavClientConnection(new NavServiceListener()
+  {
+    public void onServiceMsg(KSocket paramAnonymousKSocket, String paramAnonymousString)
+    {
+      if (DashboardManager.this.getDashboardIdentifier(paramAnonymousKSocket) == null) {
+        return;
+      }
+      Log.v("KMRC", paramAnonymousString);
+    }
+    
+    public void onServiceOffline(KSocket paramAnonymousKSocket)
+    {
+      paramAnonymousKSocket = DashboardManager.this.getDashboardIdentifier(paramAnonymousKSocket);
+      if (paramAnonymousKSocket == null) {
+        return;
+      }
+      if (dashboardConnectionListener != null) {
+        dashboardConnectionListener.dashboardDisConnected(paramAnonymousKSocket);
+      }
+    }
+    
+    public void onServiceOnline(KSocket paramAnonymousKSocket)
+    {
+      paramAnonymousKSocket = DashboardManager.this.getDashboardIdentifier(paramAnonymousKSocket);
+      if (paramAnonymousKSocket == null) {
+        return;
+      }
+      if (dashboardConnectionListener != null) {
+        dashboardConnectionListener.dashboardConnected(paramAnonymousKSocket);
+      }
+    }
+  });
+  
+  private DashboardManager()
+  {
+    navClientConnection.setReconnectTimer(4000L);
+  }
+  
+  private Dashboard getDashboardIdentifier(KSocket paramKSocket)
+  {
+    if ((paramKSocket instanceof BtDashboardSocket)) {
+      return ((BtDashboardSocket)paramKSocket).identifier();
+    }
+    if ((paramKSocket instanceof TcpDashboardSocket)) {
+      return ((TcpDashboardSocket)paramKSocket).identifier();
+    }
+    return null;
+  }
+  
+  public static DashboardManager getInstance()
+  {
+    try
+    {
+      if (instance == null) {
+        instance = new DashboardManager();
+      }
+      DashboardManager localDashboardManager = instance;
+      return localDashboardManager;
+    }
+    finally {}
+  }
+  
+  private Set<Dashboard> loadHistory()
+  {
+    return load"PairedDashboards"dashboards;
+  }
+  
+  private SortedSet<Dashboard> pairedDevicesSorted(Set<Dashboard> paramSet)
+  {
+    return new TreeSet(paramSet);
+  }
+  
+  private void saveHistory(Set<Dashboard> paramSet)
+  {
+    History localHistory = new History();
+    dashboards.addAll(paramSet);
+    Storage.save("PairedDashboards", localHistory);
+  }
+  
+  private Set<Dashboard> updatePairedDashboards()
+  {
+    Object localObject = btControl.getPairedDevices();
+    Set localSet = loadHistory();
+    int i = 0;
+    int j = i;
+    while (i < ((ArrayList)localObject).size())
+    {
+      Iterator localIterator = localSet.iterator();
+      while (localIterator.hasNext())
+      {
+        Dashboard localDashboard = (Dashboard)localIterator.next();
+        if (localDashboard.equals(((ArrayList)localObject).get(i)))
+        {
+          if (!localDashboard.btDeviceName().equals(((Dashboard)((ArrayList)localObject).get(i)).btDeviceName())) {
+            localDashboard.setBtDeviceName(((Dashboard)((ArrayList)localObject).get(i)).btDeviceName());
+          }
+          ((ArrayList)localObject).set(i, localDashboard);
+          if (localDashboard.isFavorite()) {
+            j = 1;
+          }
+        }
+      }
+      i += 1;
+    }
+    if ((j == 0) && (((ArrayList)localObject).size() > 0)) {
+      ((Dashboard)((ArrayList)localObject).get(0)).setFavorite(true);
+    }
+    localObject = new HashSet((Collection)localObject);
+    saveHistory((Set)localObject);
+    return localObject;
+  }
+  
+  public void connectFavorite()
+  {
+    Dashboard localDashboard = favorite();
+    if (localDashboard != null) {}
+    try
+    {
+      int i = 2.$SwitchMap$com$ktm$kmrc$shell$TransportType[localDashboard.transportType().ordinal()];
+      if (i != 1)
+      {
+        if (i != 2) {
+          return;
+        }
+        navClientConnection.establish(new BtDashboardSocket(localDashboard));
+        return;
+      }
+      navClientConnection.establish(new TcpDashboardSocket(localDashboard));
+      return;
+    }
+    catch (IOException localIOException)
+    {
+      localIOException.printStackTrace();
+      return;
+    }
+    catch (IllegalArgumentException localIllegalArgumentException) {}
+  }
+  
+  public Dashboard favorite()
+  {
+    Iterator localIterator = updatePairedDashboards().iterator();
+    while (localIterator.hasNext())
+    {
+      Dashboard localDashboard = (Dashboard)localIterator.next();
+      if (localDashboard.isFavorite()) {
+        return localDashboard;
+      }
+    }
+    return null;
+  }
+  
+  public Dashboard getConnectedDashboard()
+  {
+    return getDashboardIdentifier(navClientConnection.getConnectedSocket());
+  }
+  
+  public SortedSet<Dashboard> listDashboards()
+  {
+    return pairedDevicesSorted(updatePairedDashboards());
+  }
+  
+  public NavigationRequest navigationRequest()
+  {
+    return navClientConnection;
+  }
+  
+  public SortedSet<Dashboard> setDashboardAliasName(String paramString1, String paramString2)
+  {
+    Set localSet = updatePairedDashboards();
+    Iterator localIterator = localSet.iterator();
+    while (localIterator.hasNext())
+    {
+      Dashboard localDashboard = (Dashboard)localIterator.next();
+      if (localDashboard.macAddress().equals(paramString1))
+      {
+        localDashboard.setAliasName(paramString2);
+        saveHistory(localSet);
+      }
+    }
+    return pairedDevicesSorted(localSet);
+  }
+  
+  public void setDashboardConnectionListener(DashboardConnectionListener paramDashboardConnectionListener)
+  {
+    dashboardConnectionListener = paramDashboardConnectionListener;
+  }
+  
+  public SortedSet<Dashboard> setFavoriteDashboard(Dashboard paramDashboard)
+  {
+    Set localSet = updatePairedDashboards();
+    Iterator localIterator = localSet.iterator();
+    while (localIterator.hasNext())
+    {
+      Dashboard localDashboard = (Dashboard)localIterator.next();
+      if (localDashboard.equals(paramDashboard)) {
+        localDashboard.setFavorite(true);
+      } else if (localDashboard.isFavorite()) {
+        localDashboard.setFavorite(false);
+      }
+    }
+    saveHistory(localSet);
+    connectFavorite();
+    return pairedDevicesSorted(localSet);
+  }
+  
+  public static class History
+  {
+    public final Set<Dashboard> dashboards = new HashSet();
+    
+    public History() {}
+  }
+}

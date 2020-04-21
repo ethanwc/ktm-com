@@ -1,0 +1,44 @@
+package com.ktm.navapp.ui.settings;
+
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+import com.ktm.navapp.downloading.offlinemaps.OfflineMapsManager;
+import com.ktm.navapp.managers.OptionsManager;
+import com.ktm.navapp.ui.base.NavAppBaseFragment;
+import com.ktm.navapp.utilities.Utilities;
+
+public class SwitchToOnlineFragment
+  extends NavAppBaseFragment
+{
+  public SwitchToOnlineFragment() {}
+  
+  @OnClick({2131230831})
+  public void closeSwitchToOnline()
+  {
+    getActivity().getSupportFragmentManager().popBackStack();
+  }
+  
+  public View onCreateView(LayoutInflater paramLayoutInflater, ViewGroup paramViewGroup, Bundle paramBundle)
+  {
+    paramLayoutInflater = paramLayoutInflater.inflate(2131427432, paramViewGroup, false);
+    ButterKnife.bind(this, paramLayoutInflater);
+    return paramLayoutInflater;
+  }
+  
+  @OnClick({2131231352})
+  public void switchToOnlineAndClose()
+  {
+    if (OfflineMapsManager.getInstance().isNetworkConnected()) {
+      OptionsManager.getInstance().setUseOfflineMaps(false);
+    } else {
+      Utilities.toastLong(2131558681);
+    }
+    getActivity().getSupportFragmentManager().popBackStack();
+  }
+}

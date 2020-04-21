@@ -1,0 +1,38 @@
+package com.ktm.navapp.ui.settings;
+
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+import com.ktm.navapp.search.SearchHistory;
+import com.ktm.navapp.ui.base.NavAppBaseFragment;
+
+public class ClearHistorySettingsFragment
+  extends NavAppBaseFragment
+{
+  public ClearHistorySettingsFragment() {}
+  
+  @OnClick({2131230827})
+  public void closeClearHistorySettings()
+  {
+    getActivity().getSupportFragmentManager().popBackStack();
+  }
+  
+  @OnClick({2131231206})
+  public void onClearHistory()
+  {
+    SearchHistory.clearHistory();
+    getActivity().getSupportFragmentManager().popBackStack();
+  }
+  
+  public View onCreateView(LayoutInflater paramLayoutInflater, ViewGroup paramViewGroup, Bundle paramBundle)
+  {
+    paramLayoutInflater = paramLayoutInflater.inflate(2131427392, paramViewGroup, false);
+    ButterKnife.bind(this, paramLayoutInflater);
+    return paramLayoutInflater;
+  }
+}

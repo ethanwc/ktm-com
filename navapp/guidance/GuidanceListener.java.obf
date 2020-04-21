@@ -1,0 +1,15 @@
+package com.ktm.navapp.guidance;
+
+import com.here.android.mpa.routing.Maneuver;
+import java.util.Date;
+
+public abstract interface GuidanceListener
+{
+  public abstract void onGuidanceFinished();
+  
+  public abstract void onGuidanceNewManeuver(Maneuver paramManeuver, String paramString1, String paramString2, long paramLong);
+  
+  public abstract void onGuidanceRerouting();
+  
+  public abstract void onGuidanceUpdate(long paramLong1, long paramLong2, Date paramDate);
+}

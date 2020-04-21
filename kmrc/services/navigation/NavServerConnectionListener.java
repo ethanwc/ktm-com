@@ -1,0 +1,45 @@
+package com.com.kmrc.services.navigation;
+
+import com.com.kmrc.upgrade.Connection;
+import com.com.kmrc.upgrade.KSocket;
+import java.nio.charset.StandardCharsets;
+
+public class NavServerConnectionListener
+  extends NavConnectionListener
+{
+  NavServerConnectionListener(NavServiceListener paramNavServiceListener)
+  {
+    super(paramNavServiceListener);
+  }
+  
+  public void onConnected(Connection paramConnection, String paramString)
+  {
+    NavServiceListener localNavServiceListener = serviceListener;
+    KSocket localKSocket = paramConnection.ksocket();
+    StringBuilder localStringBuilder = new StringBuilder();
+    localStringBuilder.append("accepted connection ");
+    localStringBuilder.append(paramString);
+    localNavServiceListener.onServiceMsg(localKSocket, localStringBuilder.toString());
+    super.onConnected(paramConnection, paramString);
+  }
+  
+  public void onEstablishing(Connection paramConnection, String paramString)
+  {
+    NavServiceListener localNavServiceListener = serviceListener;
+    paramConnection = paramConnection.ksocket();
+    StringBuilder localStringBuilder = new StringBuilder();
+    localStringBuilder.append("accepting connection ");
+    localStringBuilder.append(paramString);
+    localNavServiceListener.onServiceMsg(paramConnection, localStringBuilder.toString());
+  }
+  
+  public void onMessageReceived(Connection paramConnection, byte[] paramArrayOfByte)
+  {
+    if ((paramConnection instanceof NavServerConnection))
+    {
+      ((NavServerConnection)paramConnection).handleNavCommand(new String(paramArrayOfByte, StandardCharsets.UTF_8));
+      return;
+    }
+    throw new IllegalArgumentException("Connection not of type NavServerConnection()");
+  }
+}

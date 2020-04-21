@@ -1,0 +1,111 @@
+package com.ktm.navapp.offroad;
+
+public class Tracker1D
+{
+  private double mPa;
+  private double mPb;
+  private double mPc;
+  private double mPd;
+  private boolean mPredicted = false;
+  private final double mQa;
+  private final double mQb;
+  private final double mQc;
+  private final double mQd;
+  private double mXa;
+  private double mXb;
+  private final double mt;
+  private final double mt2;
+  private final double mt2d2;
+  private final double mt3d2;
+  private final double mt4d4;
+  
+  public Tracker1D(double paramDouble1, double paramDouble2)
+  {
+    mt = paramDouble1;
+    double d = mt;
+    mt2 = (d * d);
+    paramDouble1 = mt2;
+    mt2d2 = (paramDouble1 / 2.0D);
+    mt3d2 = (d * paramDouble1 / 2.0D);
+    mt4d4 = (paramDouble1 * paramDouble1 / 4.0D);
+    paramDouble2 *= paramDouble2;
+    mQa = (mt4d4 * paramDouble2);
+    mQb = (mt3d2 * paramDouble2);
+    d = mQb;
+    mQc = d;
+    mQd = (paramDouble2 * paramDouble1);
+    mPa = mQa;
+    mPb = d;
+    mPc = mQc;
+    mPd = mQd;
+  }
+  
+  public double getAccuracy()
+  {
+    return Math.sqrt(mPd / mt2);
+  }
+  
+  public double getPosition()
+  {
+    return mXa;
+  }
+  
+  public double getVelocity()
+  {
+    return mXb;
+  }
+  
+  public double predict(double paramDouble)
+  {
+    mPredicted = true;
+    double d2 = mXa;
+    double d3 = mXb;
+    double d1 = mt;
+    mXa = (d2 + d3 * d1 + mt2d2 * paramDouble);
+    mXb = (d3 + paramDouble * d1);
+    paramDouble = mPd;
+    d2 = paramDouble * d1;
+    d3 = mPb + d2;
+    double d4 = mPa;
+    double d5 = mPc;
+    mPa = (d4 + d1 * (d5 + d3) + mQa);
+    mPb = (d3 + mQb);
+    mPc = (d5 + d2 + mQc);
+    mPd = (paramDouble + mQd);
+    return mXa;
+  }
+  
+  public void setState(double paramDouble1, double paramDouble2, double paramDouble3)
+  {
+    mXa = paramDouble1;
+    mXb = paramDouble2;
+    paramDouble1 = paramDouble3 * paramDouble3;
+    mPa = (mt4d4 * paramDouble1);
+    mPb = (mt3d2 * paramDouble1);
+    mPc = mPb;
+    mPd = (paramDouble1 * mt2);
+  }
+  
+  public void update(double paramDouble1, double paramDouble2)
+  {
+    if (!mPredicted) {
+      predict(0.0D);
+    }
+    mPredicted = false;
+    double d1 = mXa;
+    double d3 = paramDouble1 - d1;
+    paramDouble1 = mPa;
+    double d4 = 1.0D / (paramDouble2 * paramDouble2 + paramDouble1);
+    paramDouble2 = paramDouble1 * d4;
+    double d2 = mPc;
+    d4 *= d2;
+    mXa = (d1 + paramDouble2 * d3);
+    mXb += d3 * d4;
+    d1 = mPb;
+    d3 = mPd;
+    mPa = (paramDouble1 - paramDouble2 * paramDouble1);
+    mPb = (d1 - paramDouble2 * d1);
+    mPc = (d2 - paramDouble1 * d4);
+    mPd = (d3 - d4 * d1);
+  }
+}

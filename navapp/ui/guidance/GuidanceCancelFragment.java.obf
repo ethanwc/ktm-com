@@ -1,0 +1,45 @@
+package com.ktm.navapp.ui.guidance;
+
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ImageButton;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
+import com.ktm.navapp.guidance.GuidanceManager;
+import com.ktm.navapp.ui.base.NavAppBaseFragment;
+import com.ktm.navapp.ui.mainscreen.MainScreen;
+import com.ktm.navapp.utilities.Storage;
+
+public class GuidanceCancelFragment
+  extends NavAppBaseFragment
+{
+  public GuidanceCancelFragment() {}
+  
+  public View onCreateView(LayoutInflater paramLayoutInflater, ViewGroup paramViewGroup, Bundle paramBundle)
+  {
+    paramLayoutInflater = paramLayoutInflater.inflate(2131427398, paramViewGroup, false);
+    paramViewGroup = (Button)paramLayoutInflater.findViewById(2131230816);
+    paramBundle = (ImageButton)paramLayoutInflater.findViewById(2131230815);
+    paramViewGroup.setOnClickListener(new View.OnClickListener()
+    {
+      public void onClick(View paramAnonymousView)
+      {
+        Storage.save("isguidancecancelled", Boolean.valueOf(true));
+        GuidanceManager.getInstance().cancelGuidance();
+        ((MainScreen)getActivity()).onGuidanceFinished();
+      }
+    });
+    paramBundle.setOnClickListener(new View.OnClickListener()
+    {
+      public void onClick(View paramAnonymousView)
+      {
+        getActivity().getSupportFragmentManager().popBackStack();
+      }
+    });
+    return paramLayoutInflater;
+  }
+}

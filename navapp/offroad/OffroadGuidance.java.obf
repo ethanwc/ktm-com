@@ -1,0 +1,158 @@
+package com.ktm.navapp.offroad;
+
+import com.here.android.mpa.common.GeoCoordinate;
+import com.here.android.mpa.common.GeoPosition;
+import com.ktm.navapp.factories.HereObjectsFactory;
+import com.ktm.navapp.search.Waypoint;
+
+public abstract class OffroadGuidance
+{
+  private static final String[] COMPASS_POINTS_225;
+  private static final String[] COMPASS_POINTS_45;
+  static final String TAG = OffroadGuidance.class.getSimpleName();
+  private static long curDistance = 2147483647L;
+  private static double curHeading;
+  private static double curHeadingDest;
+  private static double curHeadingDestRelative;
+  private static GeoCoordinate curPos;
+  private static GeoCoordinate destCoord;
+  private static boolean destLeft;
+  private static final PositionFilter filter;
+  
+  static
+  {
+    COMPASS_POINTS_45 = new String[] { "N", "NE", "E", "SE", "S", "SW", "W", "NW", "N" };
+    COMPASS_POINTS_225 = new String[] { "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW", "N" };
+    filter = new PositionFilter();
+    curHeading = 0.0D;
+    curHeadingDest = 0.0D;
+    curHeadingDestRelative = 0.0D;
+  }
+  
+  public OffroadGuidance() {}
+  
+  public static String getCompassPoint(double paramDouble)
+  {
+    return COMPASS_POINTS_225[((int)Math.round(head360(paramDouble) / 22.5D))];
+  }
+  
+  public static double getCurrentHeading()
+  {
+    return curHeading;
+  }
+  
+  public static GeoCoordinate getCurrentPosition()
+  {
+    return curPos;
+  }
+  
+  public static long getDistanceDest()
+  {
+    return curDistance;
+  }
+  
+  public static double getHeadingDest()
+  {
+    return curHeadingDest;
+  }
+  
+  public static double getHeadingDestRelative()
+  {
+    return curHeadingDestRelative;
+  }
+  
+  public static double getHeadingNorthRelative()
+  {
+    double d = curHeading;
+    if (d != 1.073741824E9D) {
+      return head360(-d);
+    }
+    return 0.0D;
+  }
+  
+  public static double head180(double paramDouble)
+  {
+    double d = (paramDouble + 720.0D) % 360.0D;
+    paramDouble = d;
+    if (d > 180.0D) {
+      paramDouble = d - 360.0D;
+    }
+    return paramDouble;
+  }
+  
+  public static double head360(double paramDouble)
+  {
+    return (paramDouble + 720.0D) % 360.0D;
+  }
+  
+  public static double headDelta(double paramDouble1, double paramDouble2)
+  {
+    paramDouble1 = head180(paramDouble1);
+    paramDouble2 = head180(paramDouble2);
+    return Math.min(Math.abs((paramDouble1 - paramDouble2 + 900.0D) % 360.0D - 180.0D), Math.abs((paramDouble2 - paramDouble1 + 900.0D) % 360.0D - 180.0D));
+  }
+  
+  public static double headDeltaSigned(double paramDouble1, double paramDouble2)
+  {
+    paramDouble1 = head180(paramDouble1);
+    double d = head180(paramDouble2);
+    paramDouble2 = (paramDouble1 - d + 900.0D) % 360.0D - 180.0D;
+    d = (d - paramDouble1 + 900.0D) % 360.0D - 180.0D;
+    paramDouble1 = d;
+    if (Math.abs(paramDouble2) < Math.abs(d)) {
+      paramDouble1 = paramDouble2;
+    }
+    return paramDouble1;
+  }
+  
+  public static boolean reachedDestination()
+  {
+    return (destLeft) && (curDistance <= 30L);
+  }
+  
+  public static void setDestination(Waypoint paramWaypoint)
+  {
+    if (paramWaypoint != null) {
+      paramWaypoint = HereObjectsFactory.getGeoCoordinate(lat, lon);
+    } else {
+      paramWaypoint = null;
+    }
+    destCoord = paramWaypoint;
+    curDistance = 2147483647L;
+    destLeft = false;
+    filter.reset();
+  }
+  
+  public static boolean update()
+  {
+    GeoCoordinate localGeoCoordinate = filter.predict();
+    if (localGeoCoordinate != null)
+    {
+      curPos = localGeoCoordinate;
+      curHeading = filter.getLastLocation().getHeading();
+      localGeoCoordinate = destCoord;
+      if (localGeoCoordinate != null)
+      {
+        curDistance = Math.round(curPos.distanceTo(localGeoCoordinate));
+        if (curDistance > 50L) {
+          destLeft = true;
+        }
+        curHeadingDest = head360(curPos.getHeading(destCoord));
+        curHeadingDestRelative = head360(curHeadingDest - curHeading);
+        return true;
+      }
+      curDistance = 2147483647L;
+      curHeadingDest = 0.0D;
+      curHeadingDestRelative = 0.0D;
+      return true;
+    }
+    return false;
+  }
+  
+  public static void updatePosition(GeoPosition paramGeoPosition)
+  {
+    if (paramGeoPosition != null) {
+      filter.update(paramGeoPosition);
+    }
+  }
+}

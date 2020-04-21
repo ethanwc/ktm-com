@@ -1,0 +1,26 @@
+package com.ktm.kmrc.services.navigation;
+
+import com.google.gson.annotations.Expose;
+
+public class Value<T>
+{
+  @Expose
+  private T value = null;
+  
+  public Value() {}
+  
+  static <T> Value<T> cloner()
+  {
+    return new Value();
+  }
+  
+  public T get()
+  {
+    return value;
+  }
+  
+  public void set(T paramT)
+  {
+    value = paramT;
+  }
+}

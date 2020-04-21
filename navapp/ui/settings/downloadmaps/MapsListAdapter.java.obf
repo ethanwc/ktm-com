@@ -1,0 +1,125 @@
+package com.ktm.navapp.ui.settings.downloadmaps;
+
+import android.content.Context;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.ImageButton;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
+import com.here.android.mpa.odml.MapLoader;
+import com.ktm.navapp.downloading.offlinemaps.MapStorageLocation;
+import com.ktm.navapp.downloading.offlinemaps.OfflineMapsManager;
+import com.ktm.navapp.ui.mainscreen.MainScreen;
+import com.ktm.navapp.ui.settings.DownloadingList.DataStatus;
+import com.ktm.navapp.ui.settings.SwitchToOnlineFragment;
+import java.util.HashMap;
+import java.util.List;
+
+public class MapsListAdapter
+  extends ArrayAdapter<DownloadMap>
+{
+  private HashMap<Integer, View> convertViews = new HashMap();
+  private SwitchToOnlineFragment mSwitchToOnlineFragment;
+  
+  public MapsListAdapter(Context paramContext, List<DownloadMap> paramList)
+  {
+    super(paramContext, 2131427388, paramList);
+  }
+  
+  private void configButton(DownloadMap paramDownloadMap, View paramView)
+  {
+    throw new Runtime("d2j fail translate: java.lang.RuntimeException: can not merge Z and I\n\tat com.googlecode.dex2jar.ir.TypeClass.merge(TypeClass.java:100)\n\tat com.googlecode.dex2jar.ir.ts.TypeTransformer$TypeRef.updateTypeClass(TypeTransformer.java:174)\n\tat com.googlecode.dex2jar.ir.ts.TypeTransformer$TypeAnalyze.useAs(TypeTransformer.java:868)\n\tat com.googlecode.dex2jar.ir.ts.TypeTransformer$TypeAnalyze.e2expr(TypeTransformer.java:548)\n\tat com.googlecode.dex2jar.ir.ts.TypeTransformer$TypeAnalyze.exExpr(TypeTransformer.java:716)\n\tat com.googlecode.dex2jar.ir.ts.TypeTransformer$TypeAnalyze.s2stmt(TypeTransformer.java:821)\n\tat com.googlecode.dex2jar.ir.ts.TypeTransformer$TypeAnalyze.sxStmt(TypeTransformer.java:843)\n\tat com.googlecode.dex2jar.ir.ts.TypeTransformer$TypeAnalyze.analyze(TypeTransformer.java:206)\n\tat com.googlecode.dex2jar.ir.ts.TypeTransformer.transform(TypeTransformer.java:44)\n\tat com.googlecode.d2j.dex.Dex2jar$2.optimize(Dex2jar.java:162)\n\tat com.googlecode.d2j.dex.Dex2Asm.convertCode(Dex2Asm.java:414)\n\tat com.googlecode.d2j.dex.ExDex2Asm.convertCode(ExDex2Asm.java:42)\n\tat com.googlecode.d2j.dex.Dex2jar$2.convertCode(Dex2jar.java:128)\n\tat com.googlecode.d2j.dex.Dex2Asm.convertMethod(Dex2Asm.java:509)\n\tat com.googlecode.d2j.dex.Dex2Asm.convertClass(Dex2Asm.java:406)\n\tat com.googlecode.d2j.dex.Dex2Asm.convertDex(Dex2Asm.java:422)\n\tat com.googlecode.d2j.dex.Dex2jar.doTranslate(Dex2jar.java:172)\n\tat com.googlecode.d2j.dex.Dex2jar.to(Dex2jar.java:272)\n\tat com.googlecode.dex2jar.tools.Dex2jarCmd.doCommandLine(Dex2jarCmd.java:108)\n\tat com.googlecode.dex2jar.tools.BaseCmd.doMain(BaseCmd.java:288)\n\tat com.googlecode.dex2jar.tools.Dex2jarCmd.main(Dex2jarCmd.java:32)\n");
+  }
+  
+  private void hideViews(View... paramVarArgs)
+  {
+    int j = paramVarArgs.length;
+    int i = 0;
+    while (i < j)
+    {
+      paramVarArgs[i].setVisibility(8);
+      i += 1;
+    }
+  }
+  
+  private boolean mapLoaderIsNotAvailable()
+  {
+    return (!OfflineMapsManager.getInstance().isOnlineMode()) || (!OfflineMapsManager.getInstance().isNetworkConnected());
+  }
+  
+  private void setToInstalled(ProgressBar paramProgressBar, ImageButton paramImageButton, TextView paramTextView, View... paramVarArgs)
+  {
+    paramProgressBar.setIndeterminate(false);
+    showViews(new View[] { paramImageButton, paramTextView });
+    hideViews(paramVarArgs);
+  }
+  
+  private void setToNotInstalled(ProgressBar paramProgressBar, ImageButton paramImageButton, TextView paramTextView, View... paramVarArgs)
+  {
+    paramProgressBar.setIndeterminate(false);
+    showViews(new View[] { paramImageButton, paramTextView });
+    hideViews(paramVarArgs);
+  }
+  
+  private void setToWaiting(DownloadMap paramDownloadMap, TextView paramTextView, ProgressBar paramProgressBar, ImageButton paramImageButton, View... paramVarArgs)
+  {
+    paramTextView.setText(2131558701);
+    paramProgressBar.setIndeterminate(true);
+    showViews(new View[] { paramTextView, paramProgressBar, paramImageButton });
+    hideViews(paramVarArgs);
+    if (OfflineMapsManager.getInstance().isActualPackageId(Integer.valueOf(packageId))) {
+      hideViews(new View[] { paramImageButton });
+    }
+  }
+  
+  private void showViews(View... paramVarArgs)
+  {
+    int j = paramVarArgs.length;
+    int i = 0;
+    while (i < j)
+    {
+      paramVarArgs[i].setVisibility(0);
+      i += 1;
+    }
+  }
+  
+  public View getView(int paramInt, View paramView, ViewGroup paramViewGroup)
+  {
+    paramViewGroup = paramView;
+    if (paramView == null) {
+      if ((convertViews.size() > paramInt) && (convertViews.get(Integer.valueOf(paramInt)) != null))
+      {
+        paramViewGroup = (View)convertViews.get(Integer.valueOf(paramInt));
+      }
+      else
+      {
+        paramViewGroup = LayoutInflater.from(getContext()).inflate(2131427388, null);
+        convertViews.put(Integer.valueOf(paramInt), paramViewGroup);
+      }
+    }
+    if (getCount() > paramInt)
+    {
+      paramView = (DownloadMap)getItem(paramInt);
+      if (paramView != null)
+      {
+        ((TextView)paramViewGroup.findViewById(2131230867)).setText(header.toUpperCase());
+        configButton(paramView, paramViewGroup);
+      }
+    }
+    return paramViewGroup;
+  }
+  
+  protected void setSwitchToOnlineView()
+  {
+    if (mSwitchToOnlineFragment == null) {
+      mSwitchToOnlineFragment = new SwitchToOnlineFragment();
+    }
+    ((FragmentActivity)getContext()).getSupportFragmentManager().beginTransaction().replace(2131231033, mSwitchToOnlineFragment).addToBackStack(null).commit();
+  }
+}

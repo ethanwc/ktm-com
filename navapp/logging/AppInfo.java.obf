@@ -1,0 +1,35 @@
+package com.ktm.navapp.logging;
+
+import android.content.Context;
+import android.os.Build;
+import android.os.Build.VERSION;
+import com.here.android.mpa.common.Version;
+import com.ktm.kmrc.KmrcVersion;
+import com.ktm.navapp.App;
+import com.ktm.navapp.downloading.offlinemaps.OfflineMapsManager;
+import com.ktm.navapp.managers.OptionsManager;
+
+public class AppInfo
+{
+  public AppInfo() {}
+  
+  public static void logAppInfo()
+  {
+    Log.i("VERSION_NAME", "2.3.2.566-release");
+    Log.i("VERSION_CODE", String.valueOf(566));
+    Log.i("KMRC_VERSION", KmrcVersion.get());
+    Log.i("HERE_SDK_VERSION", Version.getSdkVersion());
+    Log.i("BUILD", App.getContext().getString(2131558447));
+    Log.i("MANUFACTURER_NAME", Build.MANUFACTURER);
+    Log.i("MODEL_NAME", Build.MODEL);
+    Log.i("OS_TYPE", "Android");
+    StringBuilder localStringBuilder = new StringBuilder();
+    localStringBuilder.append(Build.VERSION.RELEASE);
+    localStringBuilder.append(" (SDK:");
+    localStringBuilder.append(Build.VERSION.SDK_INT);
+    localStringBuilder.append(")");
+    Log.i("OS_VERSION", localStringBuilder.toString());
+    Log.d("INSTALLED_MAPS", OfflineMapsManager.getInstance().getInstalledCountries().toString());
+    Log.d("SETTINGS", OptionsManager.getInstance().toString());
+  }
+}

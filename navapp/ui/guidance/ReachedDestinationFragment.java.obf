@@ -1,0 +1,38 @@
+package com.ktm.navapp.ui.guidance;
+
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+import com.ktm.navapp.guidance.GuidanceManager;
+import com.ktm.navapp.ui.base.NavAppBaseFragment;
+import com.ktm.navapp.ui.mainscreen.MainScreen;
+import com.ktm.navapp.ui.mainscreen.OnBackPressedHandler;
+
+public class ReachedDestinationFragment
+  extends NavAppBaseFragment
+  implements OnBackPressedHandler
+{
+  public ReachedDestinationFragment() {}
+  
+  public boolean onBackPressed()
+  {
+    return true;
+  }
+  
+  public View onCreateView(LayoutInflater paramLayoutInflater, ViewGroup paramViewGroup, Bundle paramBundle)
+  {
+    paramLayoutInflater = paramLayoutInflater.inflate(2131427417, paramViewGroup, false);
+    ButterKnife.bind(this, paramLayoutInflater);
+    return paramLayoutInflater;
+  }
+  
+  @OnClick({2131231133})
+  public void onOk()
+  {
+    GuidanceManager.getInstance().cancelGuidance();
+    ((MainScreen)getActivity()).onGuidanceFinished();
+  }
+}

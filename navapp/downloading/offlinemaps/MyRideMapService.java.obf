@@ -1,0 +1,9 @@
+package com.ktm.navapp.downloading.offlinemaps;
+
+import com.here.android.mpa.service.MapService;
+
+public class MyRideMapService
+  extends MapService
+{
+  public MyRideMapService() {}
+}

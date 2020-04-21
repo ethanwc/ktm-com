@@ -1,0 +1,867 @@
+package com.ktm.navapp.routing;
+
+import android.os.Handler;
+import android.os.Looper;
+import com.here.android.mpa.common.GeoCoordinate;
+import com.here.android.mpa.common.RoadElement;
+import com.here.android.mpa.common.RoadElement.Attribute;
+import com.here.android.mpa.guidance.NavigationManager.UnitSystem;
+import com.here.android.mpa.mapping.MapRoute;
+import com.here.android.mpa.routing.CoreRouter;
+import com.here.android.mpa.routing.CoreRouter.Connectivity;
+import com.here.android.mpa.routing.CoreRouter.Listener;
+import com.here.android.mpa.routing.Route;
+import com.here.android.mpa.routing.RouteElement;
+import com.here.android.mpa.routing.RouteElements;
+import com.here.android.mpa.routing.RouteOptions;
+import com.here.android.mpa.routing.RouteOptions.TransportMode;
+import com.here.android.mpa.routing.RouteOptions.Type;
+import com.here.android.mpa.routing.RoutePlan;
+import com.here.android.mpa.routing.RouteTta;
+import com.here.android.mpa.routing.RoutingError;
+import com.ktm.navapp.downloading.offlinemaps.OfflineMapsManager;
+import com.ktm.navapp.factories.HereObjectsFactory;
+import com.ktm.navapp.logging.Log;
+import com.ktm.navapp.managers.MapManager;
+import com.ktm.navapp.managers.OptionsManager;
+import com.ktm.navapp.riser.Client;
+import com.ktm.navapp.riser.Client.API_RISER;
+import com.ktm.navapp.riser.Model.LatLong;
+import com.ktm.navapp.riser.Model.LatLongs;
+import com.ktm.navapp.riser.Model.RouteResponse;
+import com.ktm.navapp.riser.Model.RouteResponse.Meta;
+import com.ktm.navapp.riser.Model.RouteResponse.Route;
+import com.ktm.navapp.riser.Model.RouteResponse.Routes;
+import com.ktm.navapp.search.PlacesApi;
+import com.ktm.navapp.search.Trip;
+import com.ktm.navapp.search.Trip.RouteType;
+import com.ktm.navapp.search.TripManager;
+import com.ktm.navapp.search.Waypoint;
+import com.ktm.navapp.utilities.Events;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import retrofit2.Call;
+import retrofit2.Response;
+
+public class RoutingManager
+{
+  private static final boolean EDITABLE_START = true;
+  private static RoutingManager INSTANCE;
+  private static final double MILE_IN_METERS = 1609.344D;
+  private static final String TAG = RoutingManager.class.getSimpleName();
+  private static final Handler mHandler = new Handler(Looper.getMainLooper());
+  private RoutingCallback mCallback;
+  private boolean mCancelling;
+  private CoreRouter mCoreRouter;
+  private boolean mProcessedOffline = false;
+  private RouteResult mProcessedResult = RouteResult.CANCELLED;
+  private Trip mProcessedTrip = null;
+  private RouteOptions mRouteOptions;
+  private RoutePlan mRoutePlan;
+  private final List<MapRoute> mRoutes = new ArrayList();
+  private MapRoute mSelectedRoute;
+  private Call<Model.RouteResponse> mSmartRequest;
+  private final ArrayList<Waypoint> mSmartResult = new ArrayList();
+  private long mSmartResultCurvature = 0L;
+  
+  private RoutingManager()
+  {
+    initialize();
+  }
+  
+  private void callback(RouteResult paramRouteResult)
+  {
+    Log.d(TAG, "callback( %s )", new Object[] { String.valueOf(paramRouteResult.toString()) });
+    RoutingCallback localRoutingCallback = mCallback;
+    mCallback = null;
+    mCancelling = false;
+    mProcessedResult = paramRouteResult;
+    if (paramRouteResult == RouteResult.CANCELLED)
+    {
+      mProcessedTrip = null;
+    }
+    else if (paramRouteResult != RouteResult.SUCCESS)
+    {
+      mRoutes.clear();
+      mSelectedRoute = null;
+    }
+    else if (mSelectedRoute != null)
+    {
+      Trip localTrip = mProcessedTrip;
+    }
+    if (localRoutingCallback != null) {
+      localRoutingCallback.onResult(paramRouteResult, true);
+    }
+  }
+  
+  public static String formatDistance(double paramDouble, boolean paramBoolean)
+  {
+    Object localObject = OptionsManager.getInstance().getUnitSystem();
+    double d;
+    if ((localObject != NavigationManager.UnitSystem.IMPERIAL) && (localObject != NavigationManager.UnitSystem.IMPERIAL_US))
+    {
+      localObject = "KM";
+      d = 1000.0D;
+    }
+    else
+    {
+      d = 1609.344D;
+      localObject = "MI";
+    }
+    if (paramBoolean)
+    {
+      localStringBuilder = new StringBuilder();
+      localStringBuilder.append(String.format(Locale.getDefault(), "%d", new Object[] { Long.valueOf(Math.round(paramDouble / d)) }));
+      localStringBuilder.append((String)localObject);
+      return localStringBuilder.toString();
+    }
+    StringBuilder localStringBuilder = new StringBuilder();
+    localStringBuilder.append(String.format(Locale.getDefault(), "%.2f", new Object[] { Double.valueOf(paramDouble / d) }));
+    localStringBuilder.append((String)localObject);
+    return localStringBuilder.toString();
+  }
+  
+  public static RoutingManager getInstance()
+  {
+    try
+    {
+      if (INSTANCE == null) {
+        INSTANCE = new RoutingManager();
+      }
+      RoutingManager localRoutingManager = INSTANCE;
+      return localRoutingManager;
+    }
+    finally {}
+  }
+  
+  private void loadRoute0(final Trip paramTrip, final RoutingCallback paramRoutingCallback)
+  {
+    for (;;)
+    {
+      try
+      {
+        String str = TAG;
+        Waypoint localWaypoint = paramTrip.getStart();
+        boolean bool2 = true;
+        if (localWaypoint != null)
+        {
+          bool1 = true;
+          Log.Assert(str, bool1);
+          bool1 = bool2;
+          if (!OptionsManager.getInstance().getUseOfflineMaps())
+          {
+            if (OfflineMapsManager.getInstance().isNetworkConnected()) {
+              break label252;
+            }
+            bool1 = bool2;
+          }
+          if ((mProcessedOffline == bool1) && (paramTrip.equalsForRouting(mProcessedTrip)))
+          {
+            if (isBusy())
+            {
+              mCallback = paramRoutingCallback;
+              Log.d(TAG, "loadRoute(): ACCEPTING ONGOING CALCULATION");
+              return;
+            }
+            if (mProcessedResult != RouteResult.CANCELLED)
+            {
+              Events.postOnMainThread(new Runnable()
+              {
+                public void run()
+                {
+                  Log.d(RoutingManager.TAG, "loadRoute(): RETURNING EXISTING RESULT");
+                  paramRoutingCallback.onResult(mProcessedResult, false);
+                }
+              });
+              return;
+            }
+          }
+          mHandler.removeCallbacksAndMessages(null);
+          if (isBusy())
+          {
+            Log.d(TAG, "loadRoute(): CANCELLING CURRENT REQUEST");
+            cancelCalculation();
+            mHandler.postDelayed(new Runnable()
+            {
+              public void run()
+              {
+                RoutingManager.this.loadRoute0(paramTrip, paramRoutingCallback);
+              }
+            }, 100L);
+            return;
+          }
+          mCallback = paramRoutingCallback;
+          mCancelling = false;
+          mProcessedResult = RouteResult.CANCELLED;
+          mProcessedTrip = paramTrip;
+          mProcessedOffline = bool1;
+          mRoutes.clear();
+          mSelectedRoute = null;
+          Log.d(TAG, "loadRoute(): NEW REQUEST");
+          loadRoute00(mProcessedTrip, mProcessedOffline);
+          return;
+        }
+      }
+      finally {}
+      boolean bool1 = false;
+      continue;
+      label252:
+      bool1 = false;
+    }
+  }
+  
+  private void loadRoute00(final Trip paramTrip, final boolean paramBoolean)
+  {
+    for (;;)
+    {
+      try
+      {
+        if (routeType != Trip.RouteType.ROUTE)
+        {
+          Client.API_RISER localAPI_RISER = Client.create().apiRiser();
+          localObject1 = routeType;
+          Object localObject3 = Trip.RouteType.SMART_ROUND_TRIP;
+          localInteger = null;
+          Object localObject2 = null;
+          if (localObject1 == localObject3)
+          {
+            Log.d(TAG, "loadRoute(): smartroute requesting ROUN_TRIP");
+            localObject1 = paramTrip.getStart();
+            localObject3 = new Model.LatLong(lat, lon);
+            if ((!smartRoundUseDuration) || (smartRoundDurationMinutes <= 0)) {
+              break label322;
+            }
+            localObject1 = Integer.valueOf(smartRoundDurationMinutes);
+            if ((smartRoundUseDuration) || (smartRoundDistanceMeters <= 0)) {
+              break label327;
+            }
+            localInteger = Integer.valueOf(smartRoundDistanceMeters);
+            if (smartRoundWeightFactor100 > 0) {
+              localObject2 = Integer.valueOf(smartRoundWeightFactor100);
+            }
+            mSmartRequest = localAPI_RISER.getRoundTrip((Model.LatLong)localObject3, (Integer)localObject1, localInteger, (Integer)localObject2);
+          }
+          else
+          {
+            Log.d(TAG, "loadRoute(): smartroute requesting ROUTE");
+            localObject2 = new Model.LatLongs();
+            localObject1 = paramTrip.getWaypoints().iterator();
+            if (((Iterator)localObject1).hasNext())
+            {
+              localObject3 = (Waypoint)((Iterator)localObject1).next();
+              ((Model.LatLongs)localObject2).add(lat, lon);
+              continue;
+            }
+            if ((!smartRouteUseDuration) || (smartRouteDurationMinutes <= 0)) {
+              break label333;
+            }
+            localObject1 = Integer.valueOf(smartRouteDurationMinutes);
+            if (smartRouteWeightFactor100 > 0) {
+              localInteger = Integer.valueOf(smartRouteWeightFactor100);
+            }
+            mSmartRequest = localAPI_RISER.getRoute((Model.LatLongs)localObject2, (Integer)localObject1, localInteger);
+          }
+          localObject1 = mSmartRequest;
+          ((Call)localObject1).enqueue(new retrofit2.Callback()
+          {
+            public void onFailure(Call<Model.RouteResponse> paramAnonymousCall, Throwable paramAnonymousThrowable)
+            {
+              if (val$request.isCanceled()) {
+                return;
+              }
+              RoutingManager.access$402(RoutingManager.this, null);
+              Log.w(RoutingManager.TAG, "loadRoute() smartroute failed", paramAnonymousThrowable);
+              RoutingManager.this.callback(RouteResult.FAILED_ROUTING);
+            }
+            
+            public void onResponse(Call<Model.RouteResponse> paramAnonymousCall, Response<Model.RouteResponse> paramAnonymousResponse)
+            {
+              if (val$request.isCanceled()) {
+                return;
+              }
+              RoutingManager.access$402(RoutingManager.this, null);
+              paramAnonymousCall = (Model.RouteResponse)paramAnonymousResponse.body();
+              boolean bool = paramAnonymousResponse.isSuccessful();
+              int i = 0;
+              if (!bool)
+              {
+                Log.d(RoutingManager.TAG, "loadRoute() smartroute failed: CODE %d", new Object[] { Integer.valueOf(paramAnonymousResponse.code()) });
+                RoutingManager.this.callback(RouteResult.FAILED_ROUTING);
+                return;
+              }
+              if (paramAnonymousCall == null)
+              {
+                Log.w(RoutingManager.TAG, "loadRoute() smartroute failed: EMPTY BODY");
+                RoutingManager.this.callback(RouteResult.FAILED_ROUTING);
+                return;
+              }
+              if (routes.result.isEmpty())
+              {
+                Log.w(RoutingManager.TAG, "loadRoute() smartroute failed: EMPTY RESULT LIST");
+                RoutingManager.this.callback(RouteResult.FAILED_ROUTING);
+                return;
+              }
+              if (routes.result.get(0)).simple.size() < 4)
+              {
+                Log.w(RoutingManager.TAG, "loadRoute() smartroute failed: NOT ENOUGH RESULT COORDS");
+                RoutingManager.this.callback(RouteResult.FAILED_ROUTING);
+                return;
+              }
+              Log.d(RoutingManager.TAG, "loadRoute() smartroute success");
+              RoutingManager.access$502(RoutingManager.this, _meta.curvature);
+              mSmartResult.clear();
+              paramAnonymousCall = routes.result.get(0)).simple;
+              while (i < paramAnonymousCall.size() - 1)
+              {
+                mSmartResult.add(new Waypoint(((Double)paramAnonymousCall.get(i)).doubleValue(), ((Double)paramAnonymousCall.get(i + 1)).doubleValue()));
+                i += 2;
+              }
+              RoutingManager.this.loadRouteHERE(paramTrip, paramBoolean);
+            }
+          });
+        }
+        else
+        {
+          loadRouteHERE(paramTrip, paramBoolean);
+        }
+        return;
+      }
+      finally {}
+      label322:
+      Object localObject1 = null;
+      continue;
+      label327:
+      Integer localInteger = null;
+      continue;
+      label333:
+      localObject1 = null;
+    }
+  }
+  
+  private void loadRouteHERE(final Trip paramTrip, boolean paramBoolean)
+  {
+    try
+    {
+      mRoutePlan.removeAllWaypoints();
+      Object localObject;
+      if (routeType != Trip.RouteType.ROUTE)
+      {
+        mRouteOptions.setTollRoadsAllowed(true);
+        mRouteOptions.setHighwaysAllowed(true);
+        mRouteOptions.setDirtRoadsAllowed(true);
+        mRouteOptions.setRouteType(RouteOptions.Type.SHORTEST);
+        mRouteOptions.setTransportMode(RouteOptions.TransportMode.CAR);
+        mRouteOptions.setRouteCount(1);
+        paramTrip = mSmartResult.iterator();
+        while (paramTrip.hasNext())
+        {
+          localObject = (Waypoint)paramTrip.next();
+          mRoutePlan.addWaypoint(HereObjectsFactory.getRouteWaypoint(lat, lon));
+        }
+      }
+      mRouteOptions.setTollRoadsAllowed(allowTolls);
+      mRouteOptions.setHighwaysAllowed(allowHighways);
+      mRouteOptions.setDirtRoadsAllowed(allowDirtRoads);
+      RouteOptions localRouteOptions = mRouteOptions;
+      if (fastestRoute) {
+        localObject = RouteOptions.Type.FASTEST;
+      } else {
+        localObject = RouteOptions.Type.SHORTEST;
+      }
+      localRouteOptions.setRouteType((RouteOptions.Type)localObject);
+      mRouteOptions.setTransportMode(RouteOptions.TransportMode.CAR);
+      mRouteOptions.setRouteCount(5);
+      paramTrip = paramTrip.getWaypoints().iterator();
+      while (paramTrip.hasNext())
+      {
+        localObject = (Waypoint)paramTrip.next();
+        mRoutePlan.addWaypoint(HereObjectsFactory.getRouteWaypoint(lat, lon));
+      }
+      mRoutePlan.setRouteOptions(mRouteOptions);
+      paramTrip = mRoutePlan.getRouteOptions();
+      if (paramBoolean)
+      {
+        Log.d(TAG, "loadRoute().setConnectivity(OFFLINE)");
+        mCoreRouter.setConnectivity(CoreRouter.Connectivity.OFFLINE);
+      }
+      else
+      {
+        Log.d(TAG, "loadRoute().setConnectivity(ONLINE)");
+        mCoreRouter.setConnectivity(CoreRouter.Connectivity.ONLINE);
+      }
+      mCoreRouter.calculateRoute(mRoutePlan, new CoreRouter.Listener()
+      {
+        public void onCalculateRouteFinished(List<com.here.android.mpa.routing.RouteResult> paramAnonymousList, RoutingError paramAnonymousRoutingError)
+        {
+          String str2 = RoutingManager.TAG;
+          String str1;
+          if (paramAnonymousList != null) {
+            str1 = String.valueOf(paramAnonymousList.size());
+          } else {
+            str1 = "<null>";
+          }
+          int i = 0;
+          Log.d(str2, "loadRoute().onCalculateRouteFinished( results=%s, error=%s )", new Object[] { str1, String.valueOf(paramAnonymousRoutingError) });
+          if ((!mCancelling) && (paramAnonymousRoutingError != RoutingError.ROUTING_CANCELLED))
+          {
+            if (paramAnonymousRoutingError == RoutingError.INSUFFICIENT_MAP_DATA)
+            {
+              RoutingManager.this.callback(RouteResult.NO_MAP_DATA);
+              return;
+            }
+            if ((paramAnonymousRoutingError == RoutingError.NONE) && (paramAnonymousList != null) && (!paramAnonymousList.isEmpty()))
+            {
+              mRoutes.clear();
+              while (i < paramAnonymousList.size())
+              {
+                mRoutes.add(HereObjectsFactory.getMapRoute(((com.here.android.mpa.routing.RouteResult)paramAnonymousList.get(i)).getRoute()));
+                i += 1;
+              }
+              paramAnonymousList = RoutingManager.this;
+              RoutingManager.access$1102(paramAnonymousList, RoutingManager.selectRoute(mRoutes, paramTrip));
+              RoutingManager.this.callback(RouteResult.SUCCESS);
+              return;
+            }
+            RoutingManager.this.callback(RouteResult.FAILED_ROUTING);
+            return;
+          }
+          RoutingManager.this.callback(RouteResult.CANCELLED);
+        }
+        
+        public void onProgress(int paramAnonymousInt)
+        {
+          RoutingCallback localRoutingCallback = mCallback;
+          if (localRoutingCallback != null) {
+            localRoutingCallback.onProgress(paramAnonymousInt);
+          }
+        }
+      });
+      return;
+    }
+    finally {}
+  }
+  
+  static MapRoute selectRoute(List<MapRoute> paramList, RouteOptions paramRouteOptions)
+  {
+    int m = Integer.MAX_VALUE;
+    int k = m;
+    int i = 0;
+    int j = i;
+    while (i < paramList.size())
+    {
+      Route localRoute = ((MapRoute)paramList.get(i)).getRoute();
+      int i3 = localRoute.getLength();
+      int i4 = localRoute.getTtaExcludingTraffic(268435455).getDuration();
+      Log.v(TAG, "selectRoute() ROUTE-%d: length=%d, duration=%d", new Object[] { Integer.valueOf(i), Integer.valueOf(i3), Integer.valueOf(i4) });
+      int n = 8.$SwitchMap$com$here$android$mpa$routing$RouteOptions$Type[paramRouteOptions.getRouteType().ordinal()];
+      int i1;
+      int i2;
+      if (n != 1) {
+        if (n != 2)
+        {
+          n = j;
+          i1 = m;
+          i2 = k;
+          if (i != 0) {
+            break label242;
+          }
+        }
+      }
+      for (;;)
+      {
+        i2 = i4;
+        i1 = i3;
+        n = j;
+        break;
+        if (i4 >= k)
+        {
+          n = j;
+          i1 = m;
+          i2 = k;
+          if (i4 != k) {
+            break;
+          }
+          n = j;
+          i1 = m;
+          i2 = k;
+          if (i3 >= m) {
+            break;
+          }
+          break label237;
+          if (i3 >= m)
+          {
+            n = j;
+            i1 = m;
+            i2 = k;
+            if (i3 != m) {
+              break;
+            }
+            n = j;
+            i1 = m;
+            i2 = k;
+            if (i4 >= k) {
+              break;
+            }
+          }
+        }
+        label237:
+        j = i;
+      }
+      label242:
+      i += 1;
+      j = n;
+      m = i1;
+      k = i2;
+    }
+    Log.d(TAG, "selectRoute() SELECTED(%s): ROUTE-%d: length=%d, duration=%d", new Object[] { paramRouteOptions.getRouteType().name(), Integer.valueOf(j), Integer.valueOf(m), Integer.valueOf(k) });
+    paramRouteOptions = (MapRoute)paramList.remove(j);
+    while (paramList.size() > 2) {
+      paramList.remove(paramList.size() - 1);
+    }
+    paramList.add(paramRouteOptions);
+    return paramRouteOptions;
+  }
+  
+  public void cancelCalculation()
+  {
+    try
+    {
+      Log.d(TAG, "cancelCalculation() isBusy=%b", new Object[] { Boolean.valueOf(isBusy()) });
+      if (isBusy())
+      {
+        mCancelling = true;
+        mCoreRouter.cancel();
+        if (mSmartRequest != null)
+        {
+          mSmartRequest.cancel();
+          mSmartRequest = null;
+          Events.postOnMainThread(new Runnable()
+          {
+            public void run()
+            {
+              Log.w(RoutingManager.TAG, "cancelCalculation() smartroute CANCELLED");
+              RoutingManager.this.callback(RouteResult.CANCELLED);
+            }
+          });
+        }
+      }
+      return;
+    }
+    finally
+    {
+      localObject = finally;
+      throw localObject;
+    }
+  }
+  
+  public void destroy()
+  {
+    INSTANCE = null;
+  }
+  
+  public String getDistance()
+  {
+    try
+    {
+      String str = getDistance(false);
+      return str;
+    }
+    finally
+    {
+      localObject = finally;
+      throw localObject;
+    }
+  }
+  
+  public String getDistance(boolean paramBoolean)
+  {
+    try
+    {
+      String str;
+      if (mSelectedRoute == null) {
+        str = "...";
+      } else {
+        str = formatDistance(mSelectedRoute.getRoute().getLength(), paramBoolean);
+      }
+      return str;
+    }
+    finally {}
+  }
+  
+  public int getDistanceMeters()
+  {
+    MapRoute localMapRoute = mSelectedRoute;
+    if (localMapRoute != null) {
+      return localMapRoute.getRoute().getLength();
+    }
+    return 0;
+  }
+  
+  public long getRawDistance()
+  {
+    Object localObject = mSelectedRoute;
+    if (localObject == null) {
+      return 0L;
+    }
+    double d2 = ((MapRoute)localObject).getRoute().getLength();
+    localObject = OptionsManager.getInstance().getUnitSystem();
+    double d1 = 1000.0D;
+    if ((localObject == NavigationManager.UnitSystem.IMPERIAL) || (localObject == NavigationManager.UnitSystem.IMPERIAL_US)) {
+      d1 = 1609.344D;
+    }
+    return Math.round(d2 / d1);
+  }
+  
+  public List<MapRoute> getRoutes()
+  {
+    try
+    {
+      List localList = mRoutes;
+      return localList;
+    }
+    finally
+    {
+      localObject = finally;
+      throw localObject;
+    }
+  }
+  
+  public MapRoute getSelectedRoute()
+  {
+    try
+    {
+      MapRoute localMapRoute = mSelectedRoute;
+      return localMapRoute;
+    }
+    finally
+    {
+      localObject = finally;
+      throw localObject;
+    }
+  }
+  
+  public String getTime()
+  {
+    try
+    {
+      if (mSelectedRoute == null) {
+        return "...";
+      }
+      int j = mSelectedRoute.getRoute().getTtaExcludingTraffic(268435455).getDuration() / 60;
+      int i = j % 60;
+      j /= 60;
+      if (j < 1)
+      {
+        localObject1 = new StringBuilder();
+        ((StringBuilder)localObject1).append(String.valueOf(i));
+        ((StringBuilder)localObject1).append("min");
+        localObject1 = ((StringBuilder)localObject1).toString();
+        return localObject1;
+      }
+      Object localObject1 = new StringBuilder();
+      ((StringBuilder)localObject1).append(String.valueOf(j));
+      ((StringBuilder)localObject1).append("h ");
+      ((StringBuilder)localObject1).append(String.valueOf(i));
+      ((StringBuilder)localObject1).append("m");
+      localObject1 = ((StringBuilder)localObject1).toString();
+      return localObject1;
+    }
+    finally {}
+  }
+  
+  public String getUnitFormat()
+  {
+    NavigationManager.UnitSystem localUnitSystem = OptionsManager.getInstance().getUnitSystem();
+    if (localUnitSystem == NavigationManager.UnitSystem.IMPERIAL) {
+      return "MI";
+    }
+    if (localUnitSystem == NavigationManager.UnitSystem.IMPERIAL_US) {
+      return "MI";
+    }
+    return "KM";
+  }
+  
+  public boolean hasRoute()
+  {
+    try
+    {
+      MapRoute localMapRoute = mSelectedRoute;
+      boolean bool;
+      if (localMapRoute != null) {
+        bool = true;
+      } else {
+        bool = false;
+      }
+      return bool;
+    }
+    finally
+    {
+      localObject = finally;
+      throw localObject;
+    }
+  }
+  
+  public boolean hasTollRoads()
+  {
+    Object localObject = mSelectedRoute;
+    if (localObject != null)
+    {
+      localObject = ((MapRoute)localObject).getRoute().getRouteElements().getElements().iterator();
+      while (((Iterator)localObject).hasNext()) {
+        if (((RouteElement)((Iterator)localObject).next()).getRoadElement().getAttributes().contains(RoadElement.Attribute.TOLLROAD)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+  
+  public void initialize()
+  {
+    mCoreRouter = HereObjectsFactory.getCoreRouter();
+    mRoutePlan = HereObjectsFactory.getRoutePlan();
+    mRouteOptions = HereObjectsFactory.getRouteOptions();
+    mCallback = null;
+    mCancelling = false;
+    mProcessedResult = RouteResult.CANCELLED;
+    mProcessedTrip = null;
+    mRoutes.clear();
+    mSelectedRoute = null;
+    mSmartRequest = null;
+  }
+  
+  public boolean isBusy()
+  {
+    try
+    {
+      RoutingCallback localRoutingCallback = mCallback;
+      boolean bool;
+      if (localRoutingCallback != null) {
+        bool = true;
+      } else {
+        bool = false;
+      }
+      return bool;
+    }
+    finally
+    {
+      localObject = finally;
+      throw localObject;
+    }
+  }
+  
+  public void loadRoute(final GeoCoordinate paramGeoCoordinate, final Trip paramTrip, final RoutingCallback paramRoutingCallback)
+  {
+    try
+    {
+      if (paramTrip.getStart() != null) {
+        loadRoute0(paramTrip, paramRoutingCallback);
+      } else if (paramGeoCoordinate.isValid())
+      {
+        if (!keepMyLocation)
+        {
+          PlacesApi.reverseGeocode2(paramGeoCoordinate.getLatitude(), paramGeoCoordinate.getLongitude(), new com.ktm.navapp.utilities.Callback()
+          {
+            public void onResult(final Waypoint paramAnonymousWaypoint)
+            {
+              Events.runOnMainThread(new Runnable()
+              {
+                public void run()
+                {
+                  Trip localTrip = val$trip;
+                  Waypoint localWaypoint = paramAnonymousWaypoint;
+                  if (localWaypoint == null) {
+                    localWaypoint = Waypoint.address2destination(val$position.getLatitude(), val$position.getLongitude(), null);
+                  }
+                  localTrip.finalizeStart(localWaypoint);
+                  TripManager.setTrip(val$trip);
+                  RoutingManager.this.loadRoute0(val$trip, val$routingCallback);
+                }
+              });
+            }
+          });
+        }
+        else
+        {
+          paramTrip.finalizeStart(Waypoint.address2destination(paramGeoCoordinate.getLatitude(), paramGeoCoordinate.getLongitude(), null));
+          loadRoute0(paramTrip, paramRoutingCallback);
+        }
+      }
+      else {
+        Events.postOnMainThread(new Runnable()
+        {
+          public void run()
+          {
+            Log.d(RoutingManager.TAG, "loadRoute(): INVALID_START_COORDINATE");
+            paramRoutingCallback.onResult(RouteResult.INVALID_START_COORDINATE, false);
+          }
+        });
+      }
+      return;
+    }
+    finally {}
+  }
+  
+  public void onRouteSelected(MapRoute paramMapRoute)
+  {
+    try
+    {
+      Log.d(TAG, "onRouteSelected()");
+      if (mSelectedRoute != paramMapRoute)
+      {
+        MapManager.getInstance().changeRouteSelection(mSelectedRoute, paramMapRoute);
+        mSelectedRoute = paramMapRoute;
+      }
+      return;
+    }
+    finally
+    {
+      paramMapRoute = finally;
+      throw paramMapRoute;
+    }
+  }
+  
+  public void restoreSelectedRoute(MapRoute paramMapRoute)
+  {
+    try
+    {
+      Log.d(TAG, "restoreSelectedRoute()");
+      cancelCalculation();
+      mProcessedResult = RouteResult.SUCCESS;
+      mProcessedTrip = null;
+      mRoutes.clear();
+      mRoutes.add(paramMapRoute);
+      mSelectedRoute = ((MapRoute)mRoutes.get(0));
+      return;
+    }
+    finally
+    {
+      paramMapRoute = finally;
+      throw paramMapRoute;
+    }
+  }
+  
+  public void setRoute(Route paramRoute)
+  {
+    try
+    {
+      Log.d(TAG, "setRoute()");
+      MapManager.getInstance().clearRoutes();
+      cancelCalculation();
+      mProcessedResult = RouteResult.SUCCESS;
+      mProcessedTrip = null;
+      mRoutes.clear();
+      mRoutes.add(HereObjectsFactory.getMapRoute(paramRoute));
+      mSelectedRoute = ((MapRoute)mRoutes.get(0));
+      return;
+    }
+    finally
+    {
+      paramRoute = finally;
+      throw paramRoute;
+    }
+  }
+}

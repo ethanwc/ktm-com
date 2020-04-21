@@ -1,0 +1,90 @@
+package com.ktm.kmrc.services.navigation.dump;
+
+import com.google.gson.annotations.SerializedName;
+
+public class UpdateUIDump
+{
+  @SerializedName("Dist2Target")
+  public LabelDump dist2Target = new LabelDump();
+  @SerializedName("ETA")
+  public LabelDump eta = new LabelDump();
+  @SerializedName("GpsIcon")
+  public GpsIconDump gpsIcon = new GpsIconDump();
+  @SerializedName("NotificationIcon")
+  public NotificationIconDump notificationIcon = new NotificationIconDump();
+  @SerializedName("NotificationText")
+  public LabelDump notificationText = new LabelDump();
+  @SerializedName("TurnDist")
+  public LabelDump turnDist = new LabelDump();
+  @SerializedName("TurnDistUnit")
+  public LabelDump turnDistUnit = new LabelDump();
+  @SerializedName("TurnIcon")
+  public TurnIconDump turnIcon = new TurnIconDump();
+  @SerializedName("TurnInfo")
+  public LabelDump turnInfo = new LabelDump();
+  @SerializedName("TurnRoad")
+  public LabelDump turnRoad = new LabelDump();
+  
+  public UpdateUIDump() {}
+  
+  public boolean equals(Object paramObject)
+  {
+    boolean bool2 = false;
+    if (paramObject == null) {
+      return false;
+    }
+    if (paramObject == this) {
+      return true;
+    }
+    if (!(paramObject instanceof UpdateUIDump)) {
+      return false;
+    }
+    paramObject = (UpdateUIDump)paramObject;
+    boolean bool1 = bool2;
+    if (turnIcon.equals(turnIcon))
+    {
+      bool1 = bool2;
+      if (turnDist.equals(turnDist))
+      {
+        bool1 = bool2;
+        if (turnDistUnit.equals(turnDistUnit))
+        {
+          bool1 = bool2;
+          if (turnInfo.equals(turnInfo))
+          {
+            bool1 = bool2;
+            if (turnRoad.equals(turnRoad))
+            {
+              bool1 = bool2;
+              if (eta.equals(eta))
+              {
+                bool1 = bool2;
+                if (dist2Target.equals(dist2Target))
+                {
+                  bool1 = bool2;
+                  if (notificationIcon.equals(notificationIcon))
+                  {
+                    bool1 = bool2;
+                    if (notificationText.equals(notificationText))
+                    {
+                      bool1 = bool2;
+                      if (gpsIcon.equals(gpsIcon)) {
+                        bool1 = true;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return bool1;
+  }
+  
+  public boolean hasValue()
+  {
+    return (turnIcon.hasValue()) || (turnDist.hasValue()) || (turnDistUnit.hasValue()) || (turnInfo.hasValue()) || (turnRoad.hasValue()) || (eta.hasValue()) || (dist2Target.hasValue()) || (notificationIcon.hasValue()) || (notificationText.hasValue()) || (gpsIcon.hasValue());
+  }
+}

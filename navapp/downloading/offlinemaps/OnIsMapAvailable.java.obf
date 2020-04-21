@@ -1,0 +1,10 @@
+package com.ktm.navapp.downloading.offlinemaps;
+
+public abstract interface OnIsMapAvailable
+{
+  public abstract void failed();
+  
+  public abstract void onAvailable();
+  
+  public abstract void onNotAvailable();
+}

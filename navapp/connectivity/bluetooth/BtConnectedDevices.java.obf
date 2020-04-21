@@ -1,0 +1,243 @@
+package com.ktm.navapp.connectivity.bluetooth;
+
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothProfile;
+import android.bluetooth.BluetoothProfile.ServiceListener;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import com.ktm.navapp.App;
+import com.ktm.navapp.logging.Log;
+import com.ktm.navapp.utilities.Storage;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+
+public class BtConnectedDevices
+  extends BroadcastReceiver
+{
+  static final String KEY_DEVICES;
+  static final String TAG = BtConnectedDevices.class.getSimpleName();
+  private static Devices devices = null;
+  
+  static
+  {
+    StringBuilder localStringBuilder = new StringBuilder();
+    localStringBuilder.append(TAG);
+    localStringBuilder.append(".devices");
+    KEY_DEVICES = localStringBuilder.toString();
+  }
+  
+  public BtConnectedDevices() {}
+  
+  public static List<BluetoothDevice> getConnectedDevices(boolean paramBoolean)
+  {
+    LinkedList localLinkedList = new LinkedList();
+    Iterator localIterator = BluetoothAdapter.getDefaultAdapter().getBondedDevices().iterator();
+    while (localIterator.hasNext())
+    {
+      BluetoothDevice localBluetoothDevice = (BluetoothDevice)localIterator.next();
+      if (isConnected(localBluetoothDevice, paramBoolean)) {
+        localLinkedList.add(localBluetoothDevice);
+      }
+    }
+    return localLinkedList;
+  }
+  
+  static Devices getDevices()
+  {
+    for (;;)
+    {
+      Devices localDevices;
+      try
+      {
+        localDevices = devices;
+        if (localDevices != null) {}
+      }
+      finally {}
+      try
+      {
+        devices = (Devices)Storage.load(KEY_DEVICES, Devices.class);
+      }
+      catch (Exception localException) {}
+    }
+    devices = new Devices();
+    Storage.save(KEY_DEVICES, devices);
+    localDevices = devices;
+    return localDevices;
+  }
+  
+  public static boolean isConnected(BluetoothDevice paramBluetoothDevice, boolean paramBoolean)
+  {
+    Devices localDevices = getDevices();
+    paramBluetoothDevice = paramBluetoothDevice.getAddress();
+    boolean bool2 = connected.contains(paramBluetoothDevice);
+    boolean bool1 = bool2;
+    if (paramBoolean)
+    {
+      int i;
+      if ((bool2) && (connectedHFP.contains(paramBluetoothDevice))) {
+        i = 1;
+      } else {
+        i = 0;
+      }
+      if ((i != 0) && (connectedA2DP.contains(paramBluetoothDevice))) {
+        return true;
+      }
+      bool1 = false;
+    }
+    return bool1;
+  }
+  
+  static void on_A2DP_CHANGED(BluetoothDevice paramBluetoothDevice, boolean paramBoolean)
+  {
+    if (paramBluetoothDevice == null) {
+      return;
+    }
+    try
+    {
+      Log.d(TAG, "on_A2DP_CHANGED( device=%s, connected=%b )", new Object[] { paramBluetoothDevice, Boolean.valueOf(paramBoolean) });
+      if (paramBoolean)
+      {
+        if (getDevicesconnectedA2DP.add(paramBluetoothDevice.getAddress())) {
+          Storage.save(KEY_DEVICES, devices);
+        }
+      }
+      else if (getDevicesconnectedA2DP.remove(paramBluetoothDevice.getAddress())) {
+        Storage.save(KEY_DEVICES, devices);
+      }
+      return;
+    }
+    finally {}
+  }
+  
+  static void on_ACL_CHANGED(BluetoothDevice paramBluetoothDevice, boolean paramBoolean)
+  {
+    if (paramBluetoothDevice == null) {
+      return;
+    }
+    try
+    {
+      Log.d(TAG, "on_ACL_CHANGED( device=%s, connected=%b )", new Object[] { paramBluetoothDevice, Boolean.valueOf(paramBoolean) });
+      if (paramBoolean)
+      {
+        if (getDevicesconnected.add(paramBluetoothDevice.getAddress())) {
+          Storage.save(KEY_DEVICES, devices);
+        }
+      }
+      else if (getDevicesconnected.remove(paramBluetoothDevice.getAddress())) {
+        Storage.save(KEY_DEVICES, devices);
+      }
+      return;
+    }
+    finally {}
+  }
+  
+  static void on_HFP_CHANGED(BluetoothDevice paramBluetoothDevice, boolean paramBoolean)
+  {
+    if (paramBluetoothDevice == null) {
+      return;
+    }
+    try
+    {
+      Log.d(TAG, "on_HFP_CHANGED( device=%s, connected=%b )", new Object[] { paramBluetoothDevice, Boolean.valueOf(paramBoolean) });
+      if (paramBoolean)
+      {
+        if (getDevicesconnectedHFP.add(paramBluetoothDevice.getAddress())) {
+          Storage.save(KEY_DEVICES, devices);
+        }
+      }
+      else if (getDevicesconnectedHFP.remove(paramBluetoothDevice.getAddress())) {
+        Storage.save(KEY_DEVICES, devices);
+      }
+      return;
+    }
+    finally {}
+  }
+  
+  @Deprecated
+  public static void overrideConnected(BluetoothDevice paramBluetoothDevice, boolean paramBoolean1, boolean paramBoolean2)
+  {
+    try
+    {
+      Log.d(TAG, "setConnected( device=%s, connected=%b )", new Object[] { paramBluetoothDevice, Boolean.valueOf(paramBoolean1) });
+      on_ACL_CHANGED(paramBluetoothDevice, paramBoolean1);
+      if (paramBoolean2)
+      {
+        on_HFP_CHANGED(paramBluetoothDevice, paramBoolean1);
+        on_A2DP_CHANGED(paramBluetoothDevice, paramBoolean1);
+      }
+      return;
+    }
+    finally {}
+  }
+  
+  void initialize()
+  {
+    BluetoothAdapter localBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+    if (localBluetoothAdapter != null) {
+      localBluetoothAdapter.getProfileProxy(App.getContext(), new BluetoothProfile.ServiceListener()
+      {
+        public void onServiceConnected(int paramAnonymousInt, BluetoothProfile paramAnonymousBluetoothProfile) {}
+        
+        public void onServiceDisconnected(int paramAnonymousInt) {}
+      }, 1);
+    }
+  }
+  
+  public void onReceive(Context paramContext, Intent paramIntent)
+  {
+    if ("android.bluetooth.device.action.ACL_CONNECTED".equals(paramIntent.getAction()))
+    {
+      on_ACL_CHANGED((BluetoothDevice)paramIntent.getParcelableExtra("android.bluetooth.device.extra.DEVICE"), true);
+      return;
+    }
+    if ("android.bluetooth.device.action.ACL_DISCONNECTED".equals(paramIntent.getAction()))
+    {
+      on_ACL_CHANGED((BluetoothDevice)paramIntent.getParcelableExtra("android.bluetooth.device.extra.DEVICE"), false);
+      return;
+    }
+    if ("android.bluetooth.device.action.ACL_DISCONNECT_REQUESTED".equals(paramIntent.getAction()))
+    {
+      on_ACL_CHANGED((BluetoothDevice)paramIntent.getParcelableExtra("android.bluetooth.device.extra.DEVICE"), false);
+      return;
+    }
+    int i;
+    if ("android.bluetooth.headset.profile.action.CONNECTION_STATE_CHANGED".equals(paramIntent.getAction()))
+    {
+      i = paramIntent.getIntExtra("android.bluetooth.profile.extra.STATE", -1);
+      if (i == 2)
+      {
+        on_HFP_CHANGED((BluetoothDevice)paramIntent.getParcelableExtra("android.bluetooth.device.extra.DEVICE"), true);
+        return;
+      }
+      if ((i == 0) || (i == 3)) {
+        on_HFP_CHANGED((BluetoothDevice)paramIntent.getParcelableExtra("android.bluetooth.device.extra.DEVICE"), false);
+      }
+    }
+    else if ("android.bluetooth.a2dp.profile.action.CONNECTION_STATE_CHANGED".equals(paramIntent.getAction()))
+    {
+      i = paramIntent.getIntExtra("android.bluetooth.profile.extra.STATE", -1);
+      if (i == 2)
+      {
+        on_A2DP_CHANGED((BluetoothDevice)paramIntent.getParcelableExtra("android.bluetooth.device.extra.DEVICE"), true);
+        return;
+      }
+      if ((i == 0) || (i == 3)) {
+        on_A2DP_CHANGED((BluetoothDevice)paramIntent.getParcelableExtra("android.bluetooth.device.extra.DEVICE"), false);
+      }
+    }
+  }
+  
+  public static class Devices
+  {
+    public final Set<String> connected = new HashSet();
+    public final Set<String> connectedA2DP = new HashSet();
+    public final Set<String> connectedHFP = new HashSet();
+    
+    public Devices() {}
+  }
+}

@@ -1,0 +1,186 @@
+package com.ktm.navapp.search;
+
+import com.here.android.mpa.common.GeoCoordinate;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class Dealers
+{
+  private static final String TAG = Dealers.class.getSimpleName();
+  private static final Map<String, Waypoint> destinations = new HashMap();
+  public final List<Dealer> dealers = new ArrayList();
+  
+  public Dealers() {}
+  
+  public static Waypoint getDealer(GeoCoordinate paramGeoCoordinate)
+  {
+    return (Waypoint)destinations.get(getId(paramGeoCoordinate.getLatitude(), paramGeoCoordinate.getLongitude()));
+  }
+  
+  static String getId(double paramDouble1, double paramDouble2)
+  {
+    StringBuilder localStringBuilder = new StringBuilder();
+    localStringBuilder.append(paramDouble1);
+    localStringBuilder.append(",");
+    localStringBuilder.append(paramDouble2);
+    return localStringBuilder.toString();
+  }
+  
+  /* Error */
+  public static java.util.Collection<Waypoint> loadDealers()
+  {
+    // Byte code:
+    //   0: ldc 2
+    //   2: monitorenter
+    //   3: getstatic 28	com/ktm/navapp/search/Dealers:TAG	Ljava/lang/String;
+    //   6: ldc 86
+    //   8: invokestatic 92	com/ktm/navapp/logging/Log:d	(Ljava/lang/String;Ljava/lang/String;)V
+    //   11: getstatic 35	com/ktm/navapp/search/Dealers:destinations	Ljava/util/Map;
+    //   14: invokeinterface 95 1 0
+    //   19: invokestatic 101	com/ktm/navapp/App:getContext	()Landroid/content/Context;
+    //   22: invokevirtual 107	android/content/Context:getResources	()Landroid/content/res/Resources;
+    //   25: invokevirtual 113	android/content/res/Resources:getAssets	()Landroid/content/res/AssetManager;
+    //   28: ldc 115
+    //   30: invokevirtual 121	android/content/res/AssetManager:open	(Ljava/lang/String;)Ljava/io/InputStream;
+    //   33: astore_0
+    //   34: new 123	com/google/gson/Gson
+    //   37: dup
+    //   38: invokespecial 124	com/google/gson/Gson:<init>	()V
+    //   41: new 126	java/io/InputStreamReader
+    //   44: dup
+    //   45: aload_0
+    //   46: getstatic 132	java/nio/charset/StandardCharsets:UTF_8	Ljava/nio/charset/Charset;
+    //   49: invokespecial 135	java/io/InputStreamReader:<init>	(Ljava/io/InputStream;Ljava/nio/charset/Charset;)V
+    //   52: ldc 2
+    //   54: invokevirtual 139	com/google/gson/Gson:fromJson	(Ljava/io/Reader;Ljava/lang/Class;)Ljava/lang/Object;
+    //   57: checkcast 2	com/ktm/navapp/search/Dealers
+    //   60: astore_1
+    //   61: aload_0
+    //   62: invokevirtual 144	java/io/InputStream:close	()V
+    //   65: aload_1
+    //   66: ifnull +111 -> 177
+    //   69: aload_1
+    //   70: getfield 42	com/ktm/navapp/search/Dealers:dealers	Ljava/util/List;
+    //   73: invokeinterface 150 1 0
+    //   78: astore_0
+    //   79: aload_0
+    //   80: invokeinterface 156 1 0
+    //   85: ifeq +92 -> 177
+    //   88: aload_0
+    //   89: invokeinterface 160 1 0
+    //   94: checkcast 9	com/ktm/navapp/search/Dealers$Dealer
+    //   97: astore_1
+    //   98: aload_1
+    //   99: getfield 163	com/ktm/navapp/search/Dealers$Dealer:location	Ljava/util/List;
+    //   102: invokeinterface 167 1 0
+    //   107: iconst_1
+    //   108: if_icmple -29 -> 79
+    //   111: new 65	com/ktm/navapp/search/Waypoint
+    //   114: dup
+    //   115: aload_1
+    //   116: aload_1
+    //   117: getfield 163	com/ktm/navapp/search/Dealers$Dealer:location	Ljava/util/List;
+    //   120: iconst_0
+    //   121: invokeinterface 170 2 0
+    //   126: checkcast 172	java/lang/Double
+    //   129: invokevirtual 175	java/lang/Double:doubleValue	()D
+    //   132: aload_1
+    //   133: getfield 163	com/ktm/navapp/search/Dealers$Dealer:location	Ljava/util/List;
+    //   136: iconst_1
+    //   137: invokeinterface 170 2 0
+    //   142: checkcast 172	java/lang/Double
+    //   145: invokevirtual 175	java/lang/Double:doubleValue	()D
+    //   148: invokespecial 178	com/ktm/navapp/search/Waypoint:<init>	(Lcom/ktm/navapp/search/Dealers$Dealer;DD)V
+    //   151: astore_1
+    //   152: getstatic 35	com/ktm/navapp/search/Dealers:destinations	Ljava/util/Map;
+    //   155: aload_1
+    //   156: getfield 181	com/ktm/navapp/search/Waypoint:id	Ljava/lang/String;
+    //   159: aload_1
+    //   160: invokeinterface 185 3 0
+    //   165: pop
+    //   166: goto -87 -> 79
+    //   169: astore_0
+    //   170: getstatic 28	com/ktm/navapp/search/Dealers:TAG	Ljava/lang/String;
+    //   173: aload_0
+    //   174: invokestatic 189	com/ktm/navapp/logging/Log:w	(Ljava/lang/String;Ljava/lang/Throwable;)V
+    //   177: getstatic 28	com/ktm/navapp/search/Dealers:TAG	Ljava/lang/String;
+    //   180: ldc -65
+    //   182: iconst_1
+    //   183: anewarray 4	java/lang/Object
+    //   186: dup
+    //   187: iconst_0
+    //   188: getstatic 35	com/ktm/navapp/search/Dealers:destinations	Ljava/util/Map;
+    //   191: invokeinterface 192 1 0
+    //   196: invokestatic 198	java/lang/Integer:valueOf	(I)Ljava/lang/Integer;
+    //   199: aastore
+    //   200: invokestatic 201	com/ktm/navapp/logging/Log:d	(Ljava/lang/String;Ljava/lang/String;[Ljava/lang/Object;)V
+    //   203: getstatic 35	com/ktm/navapp/search/Dealers:destinations	Ljava/util/Map;
+    //   206: invokeinterface 204 1 0
+    //   211: astore_0
+    //   212: ldc 2
+    //   214: monitorexit
+    //   215: aload_0
+    //   216: areturn
+    //   217: astore_0
+    //   218: ldc 2
+    //   220: monitorexit
+    //   221: aload_0
+    //   222: athrow
+    // Local variable table:
+    //   start	length	slot	name	signature
+    //   33	56	0	localObject1	Object
+    //   169	5	0	localException	Exception
+    //   211	5	0	localCollection	java.util.Collection
+    //   217	5	0	localObject2	Object
+    //   60	100	1	localObject3	Object
+    // Exception table:
+    //   from	to	target	type
+    //   19	65	169	java/lang/Exception
+    //   69	79	169	java/lang/Exception
+    //   79	166	169	java/lang/Exception
+    //   3	19	217	finally
+    //   19	65	217	finally
+    //   69	79	217	finally
+    //   79	166	217	finally
+    //   170	177	217	finally
+    //   177	212	217	finally
+  }
+  
+  public static class Contact
+  {
+    public String city = "";
+    public String country = "";
+    public String mail = "";
+    public String name = "";
+    public String phone = "";
+    public String street = "";
+    public String url = "";
+    public String zip = "";
+    
+    public Contact() {}
+    
+    public String getAddressMultiline()
+    {
+      StringBuilder localStringBuilder = new StringBuilder();
+      localStringBuilder.append(street);
+      localStringBuilder.append("\n");
+      localStringBuilder.append(zip);
+      localStringBuilder.append(" ");
+      localStringBuilder.append(city);
+      localStringBuilder.append("\n");
+      localStringBuilder.append(country);
+      return localStringBuilder.toString();
+    }
+  }
+  
+  public static class Dealer
+  {
+    public final Dealers.Contact contact = new Dealers.Contact();
+    public String generic_name = "";
+    public final List<Double> location = new ArrayList();
+    
+    public Dealer() {}
+  }
+}

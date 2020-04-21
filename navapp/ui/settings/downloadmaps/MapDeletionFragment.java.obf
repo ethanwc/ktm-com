@@ -1,0 +1,58 @@
+package com.ktm.navapp.ui.settings.downloadmaps;
+
+import android.content.Context;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+import com.ktm.navapp.ui.base.NavAppBaseFragment;
+import com.ktm.navapp.utilities.Utilities;
+
+public class MapDeletionFragment
+  extends NavAppBaseFragment
+{
+  private String mCountryName;
+  private Runnable mDeletionRunnable;
+  @BindView(2131231042)
+  protected TextView mDescription;
+  
+  public MapDeletionFragment() {}
+  
+  public static MapDeletionFragment newInstance(String paramString, Runnable paramRunnable)
+  {
+    MapDeletionFragment localMapDeletionFragment = new MapDeletionFragment();
+    mCountryName = paramString;
+    mDeletionRunnable = paramRunnable;
+    return localMapDeletionFragment;
+  }
+  
+  @OnClick({2131231041})
+  public void onCancel()
+  {
+    getActivity().getSupportFragmentManager().popBackStack();
+  }
+  
+  public View onCreateView(LayoutInflater paramLayoutInflater, ViewGroup paramViewGroup, Bundle paramBundle)
+  {
+    paramLayoutInflater = paramLayoutInflater.inflate(2131427410, paramViewGroup, false);
+    ButterKnife.bind(this, paramLayoutInflater);
+    mDescription.setText(Utilities.replaceBoldWithColor(getContext().getString(2131558542, new Object[] { mCountryName }), getContext().getColor(2131034172)));
+    return paramLayoutInflater;
+  }
+  
+  @OnClick({2131231044})
+  public void onOk()
+  {
+    Runnable localRunnable = mDeletionRunnable;
+    if (localRunnable != null) {
+      localRunnable.run();
+    }
+    getActivity().getSupportFragmentManager().popBackStack();
+  }
+}

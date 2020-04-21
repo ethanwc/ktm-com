@@ -1,0 +1,291 @@
+package com.ktm.navapp.riser;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
+import com.google.gson.JsonSyntaxException;
+import java.lang.reflect.Type;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.TimeZone;
+
+public class Model
+{
+  private static final Gson gson = ;
+  
+  private Model() {}
+  
+  public static Gson createGson()
+  {
+    return new GsonBuilder().registerTypeAdapter(Date.class, new UtcDateTypeAdapter()).registerTypeAdapter(LatLong.class, new LatLongTypeAdapter()).disableHtmlEscaping().create();
+  }
+  
+  public static Gson createPrettyGson()
+  {
+    return new GsonBuilder().registerTypeAdapter(Date.class, new UtcDateTypeAdapter()).registerTypeAdapter(LatLong.class, new LatLongTypeAdapter()).disableHtmlEscaping().setPrettyPrinting().create();
+  }
+  
+  public static <T> T fromJson(String paramString, Class<T> paramClass)
+    throws JsonSyntaxException
+  {
+    return gson.fromJson(paramString, paramClass);
+  }
+  
+  public static boolean string_equals(String paramString1, String paramString2)
+  {
+    if (paramString1 == null) {
+      return paramString2 == null;
+    }
+    return paramString1.equals(paramString2);
+  }
+  
+  public static String toJson(Object paramObject)
+  {
+    return gson.toJson(paramObject);
+  }
+  
+  public static class LatLong
+  {
+    double lat;
+    double lon;
+    
+    public LatLong(double paramDouble1, double paramDouble2)
+    {
+      lat = paramDouble1;
+      lon = paramDouble2;
+    }
+    
+    public String toString()
+    {
+      StringBuilder localStringBuilder = new StringBuilder();
+      localStringBuilder.append(String.valueOf(lat));
+      localStringBuilder.append(",");
+      localStringBuilder.append(String.valueOf(lon));
+      return localStringBuilder.toString();
+    }
+  }
+  
+  static class LatLongTypeAdapter
+    implements JsonSerializer<Model.LatLong>, JsonDeserializer<Model.LatLong>
+  {
+    LatLongTypeAdapter() {}
+    
+    /* Error */
+    public Model.LatLong deserialize(JsonElement paramJsonElement, Type paramType, com.google.gson.JsonDeserializationContext paramJsonDeserializationContext)
+    {
+      // Byte code:
+      //   0: aload_0
+      //   1: monitorenter
+      //   2: aload_1
+      //   3: invokevirtual 27	com/google/gson/JsonElement:getAsString	()Ljava/lang/String;
+      //   6: ldc 29
+      //   8: invokevirtual 35	java/lang/String:split	(Ljava/lang/String;)[Ljava/lang/String;
+      //   11: astore_1
+      //   12: new 37	com/ktm/navapp/riser/Model$LatLong
+      //   15: dup
+      //   16: aload_1
+      //   17: iconst_0
+      //   18: aaload
+      //   19: invokestatic 43	java/lang/Double:parseDouble	(Ljava/lang/String;)D
+      //   22: aload_1
+      //   23: iconst_1
+      //   24: aaload
+      //   25: invokestatic 43	java/lang/Double:parseDouble	(Ljava/lang/String;)D
+      //   28: invokespecial 46	com/ktm/navapp/riser/Model$LatLong:<init>	(DD)V
+      //   31: astore_1
+      //   32: aload_0
+      //   33: monitorexit
+      //   34: aload_1
+      //   35: areturn
+      //   36: astore_1
+      //   37: goto +13 -> 50
+      //   40: astore_1
+      //   41: new 48	com/google/gson/JsonSyntaxException
+      //   44: dup
+      //   45: aload_1
+      //   46: invokespecial 51	com/google/gson/JsonSyntaxException:<init>	(Ljava/lang/Throwable;)V
+      //   49: athrow
+      //   50: aload_0
+      //   51: monitorexit
+      //   52: aload_1
+      //   53: athrow
+      // Local variable table:
+      //   start	length	slot	name	signature
+      //   0	54	0	this	LatLongTypeAdapter
+      //   0	54	1	paramJsonElement	JsonElement
+      //   0	54	2	paramType	Type
+      //   0	54	3	paramJsonDeserializationContext	com.google.gson.JsonDeserializationContext
+      // Exception table:
+      //   from	to	target	type
+      //   2	32	36	finally
+      //   41	50	36	finally
+      //   2	32	40	java/lang/Exception
+    }
+    
+    public JsonElement serialize(Model.LatLong paramLatLong, Type paramType, JsonSerializationContext paramJsonSerializationContext)
+    {
+      try
+      {
+        paramType = new StringBuilder();
+        paramType.append(String.valueOf(lat));
+        paramType.append(",");
+        paramType.append(String.valueOf(lon));
+        paramLatLong = new JsonPrimitive(paramType.toString());
+        return paramLatLong;
+      }
+      finally
+      {
+        paramLatLong = finally;
+        throw paramLatLong;
+      }
+    }
+  }
+  
+  public static class LatLongs
+  {
+    public final List<Model.LatLong> data = new ArrayList();
+    
+    public LatLongs() {}
+    
+    public LatLongs add(double paramDouble1, double paramDouble2)
+    {
+      data.add(new Model.LatLong(paramDouble1, paramDouble2));
+      return this;
+    }
+    
+    public String toString()
+    {
+      StringBuilder localStringBuilder = new StringBuilder();
+      Iterator localIterator = data.iterator();
+      while (localIterator.hasNext())
+      {
+        Model.LatLong localLatLong = (Model.LatLong)localIterator.next();
+        if (localStringBuilder.length() > 0) {
+          localStringBuilder.append(',');
+        }
+        localStringBuilder.append(localLatLong.toString());
+      }
+      localStringBuilder.append(']');
+      localStringBuilder.insert(0, '[');
+      return localStringBuilder.toString();
+    }
+  }
+  
+  public static class RouteResponse
+  {
+    public final Meta _meta = new Meta();
+    public String code;
+    public String id;
+    public final Routes routes = new Routes();
+    public String warning;
+    
+    public RouteResponse() {}
+    
+    public static class Meta
+    {
+      public long curvature;
+      public String weight;
+      
+      public Meta() {}
+    }
+    
+    public static class Route
+    {
+      public double distance;
+      public double duration;
+      public final List<Double> simple = new ArrayList();
+      
+      public Route() {}
+    }
+    
+    public static class Routes
+    {
+      public final List<Model.RouteResponse.Route> result = new ArrayList();
+      public String warning;
+      
+      public Routes() {}
+    }
+  }
+  
+  public static class StatusResponse
+  {
+    public String status;
+    
+    public StatusResponse() {}
+  }
+  
+  static class UtcDateTypeAdapter
+    implements JsonSerializer<Date>, JsonDeserializer<Date>
+  {
+    private final DateFormat dateFormat = new SimpleDateFormat("yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'SSS'Z'", Locale.US);
+    
+    public UtcDateTypeAdapter()
+    {
+      dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+    }
+    
+    /* Error */
+    public Date deserialize(JsonElement paramJsonElement, Type paramType, com.google.gson.JsonDeserializationContext paramJsonDeserializationContext)
+    {
+      // Byte code:
+      //   0: aload_0
+      //   1: monitorenter
+      //   2: aload_0
+      //   3: getfield 33	com/ktm/navapp/riser/Model$UtcDateTypeAdapter:dateFormat	Ljava/text/DateFormat;
+      //   6: aload_1
+      //   7: invokevirtual 64	com/google/gson/JsonElement:getAsString	()Ljava/lang/String;
+      //   10: invokevirtual 68	java/text/DateFormat:parse	(Ljava/lang/String;)Ljava/util/Date;
+      //   13: astore_1
+      //   14: aload_0
+      //   15: monitorexit
+      //   16: aload_1
+      //   17: areturn
+      //   18: astore_1
+      //   19: goto +13 -> 32
+      //   22: astore_1
+      //   23: new 70	com/google/gson/JsonSyntaxException
+      //   26: dup
+      //   27: aload_1
+      //   28: invokespecial 73	com/google/gson/JsonSyntaxException:<init>	(Ljava/lang/Throwable;)V
+      //   31: athrow
+      //   32: aload_0
+      //   33: monitorexit
+      //   34: aload_1
+      //   35: athrow
+      // Local variable table:
+      //   start	length	slot	name	signature
+      //   0	36	0	this	UtcDateTypeAdapter
+      //   0	36	1	paramJsonElement	JsonElement
+      //   0	36	2	paramType	Type
+      //   0	36	3	paramJsonDeserializationContext	com.google.gson.JsonDeserializationContext
+      // Exception table:
+      //   from	to	target	type
+      //   2	14	18	finally
+      //   23	32	18	finally
+      //   2	14	22	java/text/ParseException
+    }
+    
+    public JsonElement serialize(Date paramDate, Type paramType, JsonSerializationContext paramJsonSerializationContext)
+    {
+      try
+      {
+        paramDate = new JsonPrimitive(dateFormat.format(paramDate));
+        return paramDate;
+      }
+      finally
+      {
+        paramDate = finally;
+        throw paramDate;
+      }
+    }
+  }
+}

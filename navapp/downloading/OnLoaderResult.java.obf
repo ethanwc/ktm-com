@@ -1,0 +1,10 @@
+package com.ktm.navapp.downloading;
+
+public abstract interface OnLoaderResult<T>
+{
+  public abstract void failed(T paramT);
+  
+  public abstract void onProgress(int paramInt);
+  
+  public abstract void success();
+}

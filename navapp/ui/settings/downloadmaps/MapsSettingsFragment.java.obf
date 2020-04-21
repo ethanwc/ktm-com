@@ -1,0 +1,66 @@
+package com.ktm.navapp.ui.settings.downloadmaps;
+
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
+import butterknife.OnClick;
+import com.here.android.mpa.odml.MapPackage.InstallationState;
+import com.ktm.navapp.downloading.DownloadManager;
+import com.ktm.navapp.downloading.DownloadManager.TaskType;
+import com.ktm.navapp.downloading.offlinemaps.MapPackageInfo;
+import com.ktm.navapp.downloading.offlinemaps.OfflineMapsManager;
+import com.ktm.navapp.downloading.offlinemaps.OfflineMapsManager.OfflineMapsError;
+import com.ktm.navapp.ui.mainscreen.MainScreen;
+import com.ktm.navapp.ui.settings.DownloadingList;
+import com.ktm.navapp.ui.settings.DownloadingList.DataStatus;
+import java.util.List;
+
+public abstract class MapsSettingsFragment
+  extends DownloadingList<MapPackageInfo, DownloadMap, Integer, OfflineMapsManager.OfflineMapsError>
+{
+  public MapsSettingsFragment() {}
+  
+  @OnClick({2131231060})
+  public void closeOfflineMapsSettings()
+  {
+    getActivity().getSupportFragmentManager().popBackStack();
+  }
+  
+  protected DownloadMap createDownloadItem(MapPackageInfo paramMapPackageInfo)
+  {
+    if ((!mDownloadManager.onUninstallList(Integer.valueOf(id))) && ((mDownloadManager.getTaskType() != DownloadManager.TaskType.UNINSTALL) || (!mDownloadManager.isActualPackageId(Integer.valueOf(id)))))
+    {
+      if (installationState == MapPackage.InstallationState.INSTALLED) {
+        return new DownloadMap(paramMapPackageInfo, DownloadingList.DataStatus.INSTALLED, 100);
+      }
+      if ((mDownloadManager.isActualPackageId(Integer.valueOf(id))) && (!mDownloadManager.isActualCanceled())) {
+        return new DownloadMap(paramMapPackageInfo, DownloadingList.DataStatus.INSTALLING, mDownloadManager.getDownloadProgress());
+      }
+      if (mDownloadManager.onInstallList(Integer.valueOf(id))) {
+        return new DownloadMap(paramMapPackageInfo, DownloadingList.DataStatus.WAITING, 0);
+      }
+      return new DownloadMap(paramMapPackageInfo, DownloadingList.DataStatus.NOT_INSTALLED, 0);
+    }
+    return new DownloadMap(paramMapPackageInfo, DownloadingList.DataStatus.WAITING, 0);
+  }
+  
+  protected MapsListAdapter getAdapter()
+  {
+    return new MapsListAdapter(getContext(), mDownloadItems);
+  }
+  
+  protected List<MapPackageInfo> getItems()
+  {
+    return OfflineMapsManager.getInstance().getInstalledCountries();
+  }
+  
+  protected int getLayoutResource()
+  {
+    return 2131427404;
+  }
+  
+  protected void initializeManager()
+  {
+    mDownloadManager = OfflineMapsManager.getInstance();
+    OfflineMapsManager.getInstance().setMainScreen((MainScreen)getActivity());
+  }
+}

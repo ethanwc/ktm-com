@@ -1,0 +1,45 @@
+package com.ktm.navapp.search;
+
+import com.ktm.navapp.utilities.Storage;
+import java.util.ArrayList;
+import java.util.List;
+
+public class SearchHistory
+{
+  private static final String KEY_SEARCH_HISTORY = "DestinationManager.SearchHistory";
+  static final int MAX_SEARCH_HISTORY = 20;
+  
+  public SearchHistory() {}
+  
+  public static void addToHistory(Waypoint paramWaypoint)
+  {
+    if (paramWaypoint != null)
+    {
+      searchText = null;
+      History localHistory = (History)Storage.load("DestinationManager.SearchHistory", History.class);
+      while (destinations.remove(paramWaypoint)) {}
+      destinations.add(0, paramWaypoint);
+      while (destinations.size() > 20) {
+        destinations.remove(20);
+      }
+      Storage.save("DestinationManager.SearchHistory", localHistory);
+    }
+  }
+  
+  public static void clearHistory()
+  {
+    Storage.delete("DestinationManager.SearchHistory");
+  }
+  
+  public static List<Waypoint> getHistory()
+  {
+    return load"DestinationManager.SearchHistory"destinations;
+  }
+  
+  public static class History
+  {
+    public final ArrayList<Waypoint> destinations = new ArrayList();
+    
+    public History() {}
+  }
+}

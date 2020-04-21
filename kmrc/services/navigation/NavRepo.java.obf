@@ -1,0 +1,652 @@
+package com.ktm.kmrc.services.navigation;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.annotations.Expose;
+import com.google.gson.annotations.SerializedName;
+import com.ktm.kmrc.services.navigation.dump.NavRepoModified;
+import com.ktm.kmrc.services.navigation.dump.NavRepoResult;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+
+public class NavRepo
+{
+  public static final String DIST2TARGETWIDGET = "Dist2Target";
+  public static final String ETAWIDGET = "ETA";
+  public static final String GPSICONWIDGET = "GpsIcon";
+  public static final String IMAGE = "Image";
+  public static final String NOTIFICATIONICONWIDGET = "NotificationIcon";
+  public static final String NOTIFICATIONTEXTWIDGET = "NotificationText";
+  public static final String TEXT = "Text";
+  public static final String TURNDISTUNITWIDGET = "TurnDistUnit";
+  public static final String TURNDISTWIDGET = "TurnDist";
+  public static final String TURNICONWIDGET = "TurnIcon";
+  public static final String TURNINFOWIDGET = "TurnInfo";
+  public static final String TURNROADWIDGET = "TurnRoad";
+  public static final String UICONTEXT = "UiContext";
+  public static final String UPDATEUI = "UpdateUI";
+  public static final String VISIBILITY = "Visibility";
+  public static final List<String> allGiudanceWidgetNames = new ArrayList() {};
+  public static final List<String> allNavWidgetNames = new ArrayList() {};
+  static final List<String> gpsWidgetNames;
+  static final List<String> notificationWidgetNames;
+  static final List<String> turnByTurnWidgetNames = Arrays.asList(new String[] { "TurnIcon", "TurnDist", "TurnDistUnit", "TurnInfo", "TurnRoad", "ETA", "Dist2Target" });
+  @Expose(deserialize=false, serialize=false)
+  private final List<Widget<TurnIcon>> turnByTurnIconlWidgets = new ArrayList();
+  private final List<Widget<String>> turnByTurnLabelWidgets = new ArrayList();
+  @Expose
+  @SerializedName("UiContext")
+  public StagedValue<UiContext> uiContext = new StagedValue();
+  @Expose
+  @SerializedName("UpdateUI")
+  public UpdateUi updateUi = new UpdateUi();
+  
+  static
+  {
+    notificationWidgetNames = Arrays.asList(new String[] { "NotificationIcon", "NotificationText" });
+    gpsWidgetNames = Arrays.asList(new String[] { "GpsIcon" });
+  }
+  
+  public NavRepo()
+  {
+    turnByTurnIconlWidgets.add(updateUi.turnIcon);
+    turnByTurnLabelWidgets.add(updateUi.turnDist);
+    turnByTurnLabelWidgets.add(updateUi.turnDistUnit);
+    turnByTurnLabelWidgets.add(updateUi.turnInfo);
+    turnByTurnLabelWidgets.add(updateUi.turnRoad);
+    turnByTurnLabelWidgets.add(updateUi.eta);
+    turnByTurnLabelWidgets.add(updateUi.dist2Target);
+  }
+  
+  private void disableGuidanceAndNotificationWidgets()
+  {
+    try
+    {
+      Iterator localIterator = turnByTurnLabelWidgets.iterator();
+      Widget localWidget;
+      while (localIterator.hasNext())
+      {
+        localWidget = (Widget)localIterator.next();
+        localWidget.visibility().set(Visibility.OFF);
+        localWidget.content().set("");
+      }
+      localIterator = turnByTurnIconlWidgets.iterator();
+      while (localIterator.hasNext())
+      {
+        localWidget = (Widget)localIterator.next();
+        localWidget.visibility().set(Visibility.OFF);
+        localWidget.content().set(TurnIcon.UNDEFINED);
+      }
+      updateUi.notificationIcon.visibility().set(Visibility.OFF);
+      updateUi.notificationText.visibility().set(Visibility.OFF);
+      updateUi.notificationText.content().set("");
+      return;
+    }
+    finally {}
+  }
+  
+  private NavRepoModified getNavRepoModifiedCommitted()
+  {
+    try
+    {
+      NavRepoModified localNavRepoModified = getNavRepoModified();
+      commit();
+      return localNavRepoModified;
+    }
+    finally
+    {
+      localObject = finally;
+      throw localObject;
+    }
+  }
+  
+  private boolean shallBeGrey()
+  {
+    Object localObject = updateUi.gpsIcon.visibility().result();
+    boolean bool3 = false;
+    boolean bool2 = false;
+    if ((localObject == null) && (updateUi.notificationIcon.content().result() == null)) {
+      return false;
+    }
+    if ((updateUi.gpsIcon.visibility().result() != null) && (updateUi.notificationIcon.content().result() == null)) {
+      return ((Visibility)updateUi.gpsIcon.visibility().result()).equals(Visibility.HALF);
+    }
+    if ((updateUi.gpsIcon.visibility().result() != null) && (updateUi.notificationIcon.content().result() != null))
+    {
+      if (!((Visibility)updateUi.gpsIcon.visibility().result()).equals(Visibility.HALF))
+      {
+        bool1 = bool2;
+        if (updateUi.notificationIcon.content().result() == NotificationIcon.NOTIFICATION_REROUTING)
+        {
+          bool1 = bool2;
+          if (updateUi.notificationIcon.visibility().result() == Visibility.OFF) {}
+        }
+      }
+      else
+      {
+        bool1 = true;
+      }
+      return bool1;
+    }
+    boolean bool1 = bool3;
+    if (updateUi.gpsIcon.visibility().result() == null)
+    {
+      bool1 = bool3;
+      if (updateUi.notificationIcon.content().result() != null)
+      {
+        bool1 = bool3;
+        if (updateUi.notificationIcon.content().result() == NotificationIcon.NOTIFICATION_REROUTING)
+        {
+          bool1 = bool3;
+          if (updateUi.notificationIcon.visibility().result() != Visibility.OFF) {
+            bool1 = true;
+          }
+        }
+      }
+    }
+    return bool1;
+  }
+  
+  private void updateLabelWidget(Widget<String> paramWidget, String paramString)
+  {
+    paramWidget.content().set(paramString);
+    paramString = paramWidget.visibility();
+    if (shallBeGrey()) {
+      paramWidget = Visibility.HALF;
+    } else {
+      paramWidget = Visibility.FULL;
+    }
+    paramString.set(paramWidget);
+  }
+  
+  public void commit()
+  {
+    try
+    {
+      uiContext.commit();
+      updateUi.turnIcon.commit();
+      updateUi.turnDist.commit();
+      updateUi.turnDistUnit.commit();
+      updateUi.turnInfo.commit();
+      updateUi.turnRoad.commit();
+      updateUi.dist2Target.commit();
+      updateUi.eta.commit();
+      updateUi.gpsIcon.commit();
+      updateUi.notificationIcon.commit();
+      updateUi.notificationText.commit();
+      return;
+    }
+    finally
+    {
+      localObject = finally;
+      throw localObject;
+    }
+  }
+  
+  void disableNotification(NotificationIcon paramNotificationIcon)
+  {
+    if (paramNotificationIcon != null) {
+      try
+      {
+        if ((updateUi.notificationIcon.content().result() != null) && (((NotificationIcon)updateUi.notificationIcon.content().result()).equals(paramNotificationIcon)))
+        {
+          updateUi.notificationIcon.visibility().set(Visibility.OFF);
+          updateUi.notificationText.visibility().set(Visibility.OFF);
+        }
+        return;
+      }
+      finally
+      {
+        break label94;
+      }
+    }
+    throw new IllegalArgumentException("disableNotification() passed null argument");
+    label94:
+    throw paramNotificationIcon;
+  }
+  
+  void enableNotification(NotificationIcon paramNotificationIcon, String paramString)
+  {
+    if ((paramNotificationIcon != null) && (paramString != null)) {}
+    try
+    {
+      updateUi.notificationIcon.content().set(paramNotificationIcon);
+      updateUi.notificationIcon.visibility().set(Visibility.FULL);
+      updateUi.notificationText.content().set(paramString);
+      updateUi.notificationText.visibility().set(Visibility.FULL);
+      return;
+    }
+    finally {}
+    throw new IllegalArgumentException("enableNotification() passed null argument");
+  }
+  
+  public NavRepoModified getNavRepoModified()
+  {
+    try
+    {
+      NavRepoModified localNavRepoModified = new NavRepoModified(this);
+      return localNavRepoModified;
+    }
+    finally
+    {
+      localObject = finally;
+      throw localObject;
+    }
+  }
+  
+  boolean isReroutingAvtive()
+  {
+    try
+    {
+      if ((updateUi.notificationIcon.content().result() != null) && (((NotificationIcon)updateUi.notificationIcon.content().result()).equals(NotificationIcon.NOTIFICATION_REROUTING)))
+      {
+        bool = ((Visibility)updateUi.notificationIcon.visibility().result()).equals(Visibility.FULL);
+        if (bool)
+        {
+          bool = true;
+          break label77;
+        }
+      }
+      boolean bool = false;
+      label77:
+      return bool;
+    }
+    finally
+    {
+      localObject = finally;
+      throw localObject;
+    }
+  }
+  
+  boolean isUiContextGuidance()
+  {
+    try
+    {
+      if (uiContext.result() != null)
+      {
+        bool = ((UiContext)uiContext.result()).equals(UiContext.GUIDANCE);
+        if (bool)
+        {
+          bool = true;
+          break label40;
+        }
+      }
+      boolean bool = false;
+      label40:
+      return bool;
+    }
+    finally
+    {
+      localObject = finally;
+      throw localObject;
+    }
+  }
+  
+  void modifyDist2TargetWidget(String paramString)
+  {
+    try
+    {
+      updateLabelWidget(updateUi.dist2Target, paramString);
+      return;
+    }
+    finally
+    {
+      paramString = finally;
+      throw paramString;
+    }
+  }
+  
+  void modifyEtaWidget(String paramString)
+  {
+    try
+    {
+      updateLabelWidget(updateUi.eta, paramString);
+      return;
+    }
+    finally
+    {
+      paramString = finally;
+      throw paramString;
+    }
+  }
+  
+  void modifyGpsIconWidget(GpsIcon paramGpsIcon, Visibility paramVisibility)
+  {
+    try
+    {
+      updateUi.gpsIcon.content().set(paramGpsIcon);
+      updateUi.gpsIcon.visibility().set(paramVisibility);
+      return;
+    }
+    finally
+    {
+      paramGpsIcon = finally;
+      throw paramGpsIcon;
+    }
+  }
+  
+  void modifyTurnDistUnitWidget(String paramString)
+  {
+    try
+    {
+      updateLabelWidget(updateUi.turnDistUnit, paramString);
+      return;
+    }
+    finally
+    {
+      paramString = finally;
+      throw paramString;
+    }
+  }
+  
+  void modifyTurnDistWidget(String paramString)
+  {
+    try
+    {
+      updateLabelWidget(updateUi.turnDist, paramString);
+      return;
+    }
+    finally
+    {
+      paramString = finally;
+      throw paramString;
+    }
+  }
+  
+  void modifyTurnIconWidget(TurnIcon paramTurnIcon)
+  {
+    try
+    {
+      updateUi.turnIcon.content().set(paramTurnIcon);
+      StagedValue localStagedValue = updateUi.turnIcon.visibility();
+      if (shallBeGrey()) {
+        paramTurnIcon = Visibility.HALF;
+      } else {
+        paramTurnIcon = Visibility.FULL;
+      }
+      localStagedValue.set(paramTurnIcon);
+      return;
+    }
+    finally {}
+  }
+  
+  void modifyTurnInfoWidget(String paramString)
+  {
+    try
+    {
+      updateLabelWidget(updateUi.turnInfo, paramString);
+      return;
+    }
+    finally
+    {
+      paramString = finally;
+      throw paramString;
+    }
+  }
+  
+  void modifyTurnRoadWidget(String paramString)
+  {
+    try
+    {
+      updateLabelWidget(updateUi.turnRoad, paramString);
+      return;
+    }
+    finally
+    {
+      paramString = finally;
+      throw paramString;
+    }
+  }
+  
+  void modifyUiContext(UiContext paramUiContext)
+  {
+    try
+    {
+      uiContext.set(paramUiContext);
+      return;
+    }
+    finally
+    {
+      paramUiContext = finally;
+      throw paramUiContext;
+    }
+  }
+  
+  void resetNavigationWidgets()
+  {
+    try
+    {
+      updateUi.turnIcon.reset();
+      updateUi.turnDist.reset();
+      updateUi.turnDistUnit.reset();
+      updateUi.turnInfo.reset();
+      updateUi.turnRoad.reset();
+      updateUi.eta.reset();
+      updateUi.dist2Target.reset();
+      updateUi.notificationIcon.reset();
+      updateUi.notificationText.reset();
+      return;
+    }
+    finally
+    {
+      localObject = finally;
+      throw localObject;
+    }
+  }
+  
+  void restore(NavClientConnection paramNavClientConnection)
+  {
+    try
+    {
+      NavRepoResult localNavRepoResult = new NavRepoResult(this);
+      commit();
+      if (paramNavClientConnection != null) {
+        paramNavClientConnection.pushIfNeeded(localNavRepoResult, "Restore");
+      }
+      return;
+    }
+    finally {}
+  }
+  
+  public void setGpsSignalAvailable(NavClientConnection paramNavClientConnection, String paramString)
+  {
+    try
+    {
+      modifyGpsIconWidget(GpsIcon.GPS, Visibility.FULL);
+      setGuidanceWidgetsVisibility();
+      if (paramNavClientConnection != null) {
+        paramNavClientConnection.pushIfNeeded(getNavRepoModifiedCommitted(), paramString);
+      }
+      return;
+    }
+    finally {}
+  }
+  
+  public void setGpsSignalLost(NavClientConnection paramNavClientConnection, String paramString)
+  {
+    try
+    {
+      modifyGpsIconWidget(GpsIcon.GPS, Visibility.HALF);
+      setGuidanceWidgetsVisibility();
+      if (paramNavClientConnection != null) {
+        paramNavClientConnection.pushIfNeeded(getNavRepoModifiedCommitted(), paramString);
+      }
+      return;
+    }
+    finally {}
+  }
+  
+  public void setGuidanceFinished(NavClientConnection paramNavClientConnection, String paramString)
+  {
+    try
+    {
+      if (isUiContextGuidance())
+      {
+        modifyUiContext(UiContext.DEFAULT);
+        disableGuidanceAndNotificationWidgets();
+        if (paramNavClientConnection != null) {
+          paramNavClientConnection.pushIfNeeded(getNavRepoModifiedCommitted(), paramString);
+        }
+        resetNavigationWidgets();
+        return;
+      }
+      throw new RuntimeException("can't finish guidance: guidance UI-mode is not active");
+    }
+    finally {}
+  }
+  
+  public void setGuidanceStarted(NavClientConnection paramNavClientConnection, String paramString)
+  {
+    try
+    {
+      if (!isUiContextGuidance())
+      {
+        modifyUiContext(UiContext.GUIDANCE);
+        disableGuidanceAndNotificationWidgets();
+        if (paramNavClientConnection != null) {
+          paramNavClientConnection.pushIfNeeded(getNavRepoModifiedCommitted(), paramString);
+        }
+        return;
+      }
+      throw new RuntimeException("can't start guidance: guidance UI-mode is already active");
+    }
+    finally {}
+  }
+  
+  void setGuidanceWidgetsVisibility()
+  {
+    try
+    {
+      if (isUiContextGuidance())
+      {
+        Visibility localVisibility;
+        if (shallBeGrey()) {
+          localVisibility = Visibility.HALF;
+        } else {
+          localVisibility = Visibility.FULL;
+        }
+        Iterator localIterator = turnByTurnLabelWidgets.iterator();
+        while (localIterator.hasNext()) {
+          ((Widget)localIterator.next()).visibility().set(localVisibility);
+        }
+        localIterator = turnByTurnIconlWidgets.iterator();
+        while (localIterator.hasNext()) {
+          ((Widget)localIterator.next()).visibility().set(localVisibility);
+        }
+      }
+      return;
+    }
+    finally {}
+  }
+  
+  public void setNewGuidanceManeuver(NavClientConnection paramNavClientConnection, TurnIcon paramTurnIcon, String paramString1, String paramString2, String paramString3, String paramString4, String paramString5)
+  {
+    try
+    {
+      if (isUiContextGuidance())
+      {
+        if (isReroutingAvtive())
+        {
+          disableNotification(NotificationIcon.NOTIFICATION_REROUTING);
+          setGuidanceWidgetsVisibility();
+        }
+        modifyTurnIconWidget(paramTurnIcon);
+        modifyTurnRoadWidget(paramString1);
+        modifyTurnInfoWidget(paramString2);
+        modifyTurnDistWidget(paramString3);
+        modifyTurnDistUnitWidget(paramString4);
+        if (paramNavClientConnection != null) {
+          paramNavClientConnection.pushIfNeeded(getNavRepoModifiedCommitted(), paramString5);
+        }
+        return;
+      }
+      throw new RuntimeException("can't update maneuver: guidance UI-mode is not active");
+    }
+    finally {}
+  }
+  
+  public void setNewLocation(NavClientConnection paramNavClientConnection, String paramString1, String paramString2, String paramString3, String paramString4, String paramString5)
+  {
+    try
+    {
+      if (isUiContextGuidance())
+      {
+        modifyTurnDistWidget(paramString1);
+        modifyTurnDistUnitWidget(paramString2);
+        modifyDist2TargetWidget(paramString3);
+        modifyEtaWidget(paramString4);
+        if (paramNavClientConnection != null) {
+          paramNavClientConnection.pushIfNeeded(getNavRepoModifiedCommitted(), paramString5);
+        }
+        return;
+      }
+      throw new RuntimeException("can't update new location: guidance UI-mode is not active");
+    }
+    finally {}
+  }
+  
+  public void setRerouting(NavClientConnection paramNavClientConnection, String paramString1, String paramString2)
+  {
+    try
+    {
+      if (isUiContextGuidance())
+      {
+        enableNotification(NotificationIcon.NOTIFICATION_REROUTING, paramString1);
+        setGuidanceWidgetsVisibility();
+        if (paramNavClientConnection != null) {
+          paramNavClientConnection.pushIfNeeded(getNavRepoModifiedCommitted(), paramString2);
+        }
+        return;
+      }
+      throw new RuntimeException("can't set rerouting: guidance UI-mode is not active");
+    }
+    finally {}
+  }
+  
+  public String toJson()
+  {
+    GsonBuilder localGsonBuilder = new GsonBuilder();
+    localGsonBuilder.serializeNulls();
+    localGsonBuilder.excludeFieldsWithoutExposeAnnotation();
+    localGsonBuilder.setPrettyPrinting();
+    return localGsonBuilder.create().toJson(this);
+  }
+  
+  public class UpdateUi
+  {
+    @Expose
+    @SerializedName("Dist2Target")
+    public Widget<String> dist2Target = new Widget();
+    @Expose
+    @SerializedName("ETA")
+    public Widget<String> eta = new Widget();
+    @Expose
+    @SerializedName("GpsIcon")
+    public Widget<GpsIcon> gpsIcon = new Widget();
+    @Expose
+    @SerializedName("NotificationIcon")
+    public Widget<NotificationIcon> notificationIcon = new Widget();
+    @Expose
+    @SerializedName("NotificationText")
+    public Widget<String> notificationText = new Widget();
+    @Expose
+    @SerializedName("TurnDist")
+    public Widget<String> turnDist = new Widget();
+    @Expose
+    @SerializedName("TurnDistUnit")
+    public Widget<String> turnDistUnit = new Widget();
+    @Expose
+    @SerializedName("TurnIcon")
+    public Widget<TurnIcon> turnIcon = new Widget();
+    @Expose
+    @SerializedName("TurnInfo")
+    public Widget<String> turnInfo = new Widget();
+    @Expose
+    @SerializedName("TurnRoad")
+    public Widget<String> turnRoad = new Widget();
+    
+    public UpdateUi() {}
+  }
+}

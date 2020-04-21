@@ -1,0 +1,269 @@
+package com.ktm.navapp.guidance;
+
+import android.content.Intent;
+import androidx.core.content.ContextCompat;
+import com.here.android.mpa.common.GeoCoordinate;
+import com.here.android.mpa.guidance.NavigationManager;
+import com.here.android.mpa.guidance.NavigationManager.AudioEvent;
+import com.here.android.mpa.guidance.NavigationManager.AudioPlayer;
+import com.here.android.mpa.guidance.NavigationManager.MapUpdateMode;
+import com.here.android.mpa.guidance.NavigationManager.NavigationState;
+import com.here.android.mpa.mapping.Map;
+import com.here.android.mpa.mapping.MapRoute;
+import com.here.android.mpa.mapping.PositionIndicator;
+import com.here.android.mpa.routing.Route;
+import com.ktm.navapp.App;
+import com.ktm.navapp.factories.HereObjectsFactory;
+import com.ktm.navapp.logging.Log;
+import com.ktm.navapp.managers.MapManager;
+import com.ktm.navapp.managers.OptionsManager;
+import com.ktm.navapp.routing.RoutingManager;
+import com.ktm.navapp.search.TripManager;
+import com.ktm.navapp.search.Waypoint;
+import com.ktm.navapp.services.NavAppService;
+import com.ktm.navapp.utilities.Events;
+import com.ktm.navapp.utilities.NavigationManagerProxy;
+import com.ktm.navapp.utilities.Storage;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.Iterator;
+import java.util.List;
+
+public class GuidanceManager
+{
+  private static final String TAG = GuidanceManager.class.getSimpleName();
+  private static GuidanceManager instance;
+  private static boolean sGuidance;
+  MapRoute mMapRoute;
+  
+  private GuidanceManager() {}
+  
+  private void configureGuidanceMap(final boolean paramBoolean)
+  {
+    if (MapManager.getInstance().getMap() == null)
+    {
+      Events.postDelayed(new Runnable()
+      {
+        public void run()
+        {
+          GuidanceManager.this.configureGuidanceMap(paramBoolean);
+        }
+      }, 1000L);
+      return;
+    }
+    MapRoute localMapRoute;
+    if (paramBoolean) {
+      localMapRoute = null;
+    } else {
+      localMapRoute = RoutingManager.getInstance().getSelectedRoute();
+    }
+    configureGuidanceMap(localMapRoute);
+  }
+  
+  public static GuidanceManager getInstance()
+  {
+    try
+    {
+      if (instance == null) {
+        instance = new GuidanceManager();
+      }
+      GuidanceManager localGuidanceManager = instance;
+      return localGuidanceManager;
+    }
+    finally {}
+  }
+  
+  public static boolean isGuidanceView()
+  {
+    return sGuidance;
+  }
+  
+  public static void setGuidanceView(boolean paramBoolean1, boolean paramBoolean2)
+  {
+    sGuidance = paramBoolean1;
+    NavigationManager localNavigationManager = NavigationManagerProxy.getInstance();
+    NavigationManager.MapUpdateMode localMapUpdateMode;
+    if (paramBoolean1) {
+      localMapUpdateMode = NavigationManager.MapUpdateMode.ROADVIEW;
+    } else {
+      localMapUpdateMode = NavigationManager.MapUpdateMode.ROADVIEW_NOZOOM;
+    }
+    localNavigationManager.setMapUpdateMode(localMapUpdateMode);
+    MapManager.getInstance().setGuidance(paramBoolean1, paramBoolean2);
+  }
+  
+  public static void setNoMapUpdate()
+  {
+    sGuidance = false;
+    NavigationManagerProxy.getInstance().setMapUpdateMode(NavigationManager.MapUpdateMode.NONE);
+    MapManager.getInstance().setGuidance(false, false);
+  }
+  
+  public void cancelGuidance()
+  {
+    Log.i(TAG, "cancelGuidance()");
+    if (NavigationManagerProxy.getInstance().getRunningState() != NavigationManager.NavigationState.IDLE) {
+      NavigationManagerProxy.getInstance().stop();
+    }
+    NavigationManagerProxy.getInstance().getAudioPlayer().stop();
+    MapManager.getInstance().getPositionIndicator().setVisible(false);
+    setGuidanceView(false, false);
+    OptionsManager.getInstance().navigateWithOptions();
+    MapManager.getInstance().clearRoutes();
+    MapManager.getInstance().clearMarkers();
+  }
+  
+  void configureGuidanceMap(MapRoute paramMapRoute)
+  {
+    MapManager.getInstance().setShowCurrentLocation(false, false);
+    Map localMap = MapManager.getInstance().getMap();
+    PositionIndicator localPositionIndicator = MapManager.getInstance().getPositionIndicator();
+    String str = OptionsManager.getInstance().getMapType();
+    switch (str.hashCode())
+    {
+    default: 
+      break;
+    case 1571582122: 
+      if (str.equals("hybrid.day")) {
+        i = 2;
+      }
+      break;
+    case -437789341: 
+      if (str.equals("terrain.day")) {
+        i = 1;
+      }
+      break;
+    case -978706327: 
+      if (str.equals("satellite.day")) {
+        i = 3;
+      }
+      break;
+    case -1256825323: 
+      if (str.equals("normal.day")) {
+        i = 0;
+      }
+      break;
+    }
+    int i = -1;
+    MapManager localMapManager;
+    if ((i != 0) && (i != 1))
+    {
+      if ((i == 2) || (i == 3))
+      {
+        localMapManager = MapManager.getInstance();
+        if (OptionsManager.getInstance().getTrafficInformation()) {
+          str = "carnav.traffic.hybrid.day";
+        } else {
+          str = "carnav.hybrid.day";
+        }
+        localMapManager.setMapType(str);
+      }
+    }
+    else
+    {
+      localMapManager = MapManager.getInstance();
+      if (OptionsManager.getInstance().getTrafficInformation()) {
+        str = "carnav.traffic.day";
+      } else {
+        str = "carnav.day";
+      }
+      localMapManager.setMapType(str);
+    }
+    NavigationManagerProxy.getInstance().setMap(localMap);
+    NavigationManagerProxy.getInstance().setSpeedWarningEnabled(false);
+    NavigationManagerProxy.getInstance().setEnabledAudioEvents(EnumSet.of(NavigationManager.AudioEvent.MANEUVER, NavigationManager.AudioEvent.GPS, NavigationManager.AudioEvent.VIBRATION));
+    NavigationManagerProxy.getInstance().setDistanceUnit(OptionsManager.getInstance().getUnitSystem());
+    LengthFormatter.setUnitSystem(NavigationManagerProxy.getInstance().getDistanceUnit());
+    if (paramMapRoute != null)
+    {
+      setRoute(paramMapRoute.getRoute());
+      localPositionIndicator.setVisible(true);
+      setGuidanceView(true, false);
+      return;
+    }
+    paramMapRoute = TripManager.getDestination();
+    if (paramMapRoute != null)
+    {
+      paramMapRoute = HereObjectsFactory.getGeoCoordinate(lat, lon);
+      MapManager.getInstance().setMarker("destination", 2131165368, paramMapRoute);
+    }
+    setGuidanceView(true, true);
+    MapManager.getInstance().resetZoom(-2, true);
+  }
+  
+  public void destroy()
+  {
+    instance = null;
+  }
+  
+  public Route getRoute()
+  {
+    MapRoute localMapRoute = mMapRoute;
+    if (localMapRoute != null) {
+      return localMapRoute.getRoute();
+    }
+    return null;
+  }
+  
+  public void setRoute(Route paramRoute)
+  {
+    if (mMapRoute == null)
+    {
+      mMapRoute = HereObjectsFactory.getMapRoute();
+      mMapRoute.setTrafficEnabled(true);
+      mMapRoute.setColor(ContextCompat.getColor(App.getContext(), 2131034197));
+      mMapRoute.setUpcomingColor(ContextCompat.getColor(App.getContext(), 2131034197));
+    }
+    mMapRoute.setRoute(paramRoute);
+    MapManager.getInstance().clearRoutes();
+    MapManager.getInstance().clearMarkers();
+    MapManager.getInstance().setRoute("active-route", mMapRoute);
+    Object localObject = paramRoute.getWaypoints();
+    if (localObject != null)
+    {
+      localObject = new ArrayList((Collection)localObject);
+      boolean bool = ((List)localObject).isEmpty();
+      int i = 0;
+      if (!bool) {
+        ((List)localObject).remove(0);
+      }
+      if (!((List)localObject).isEmpty()) {
+        ((List)localObject).remove(((List)localObject).size() - 1);
+      }
+      localObject = ((List)localObject).iterator();
+      while (((Iterator)localObject).hasNext())
+      {
+        GeoCoordinate localGeoCoordinate = (GeoCoordinate)((Iterator)localObject).next();
+        if (localGeoCoordinate != null)
+        {
+          i += 1;
+          MapManager localMapManager = MapManager.getInstance();
+          StringBuilder localStringBuilder = new StringBuilder();
+          localStringBuilder.append("waypoint");
+          localStringBuilder.append(i);
+          localMapManager.setMarker(localStringBuilder.toString(), 2131166026, localGeoCoordinate);
+        }
+      }
+    }
+    MapManager.getInstance().setMarker("destination", 2131165369, paramRoute.getDestination());
+  }
+  
+  public void startGuidance(boolean paramBoolean1, boolean paramBoolean2)
+  {
+    Object localObject = TAG;
+    Boolean localBoolean = Boolean.valueOf(false);
+    Log.d((String)localObject, "startGuidance( simulate=%b, offroad=%b )", new Object[] { Boolean.valueOf(paramBoolean1), Boolean.valueOf(paramBoolean2) });
+    if ((!paramBoolean2) && (!NavAppService.isRunning(App.getContext())))
+    {
+      Storage.save("reacheddestination", localBoolean);
+      Storage.save("isguidancecancelled", localBoolean);
+      localObject = new Intent(App.getContext(), NavAppService.class);
+      ((Intent)localObject).putExtra("SIMULATE", paramBoolean1);
+      ((Intent)localObject).putExtra("OFFROAD", paramBoolean2);
+      ((Intent)localObject).putExtra("GUIDANCE_COMMAND", 1209);
+      ContextCompat.startForegroundService(App.getContext(), (Intent)localObject);
+    }
+    configureGuidanceMap(paramBoolean2);
+  }
+}

@@ -1,0 +1,30 @@
+package com.ktm.navapp.ui.settings;
+
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+import com.ktm.navapp.ui.base.NavAppBaseFragment;
+
+public class NotEnoughMemorySettingsFragment
+  extends NavAppBaseFragment
+{
+  public NotEnoughMemorySettingsFragment() {}
+  
+  public View onCreateView(LayoutInflater paramLayoutInflater, ViewGroup paramViewGroup, Bundle paramBundle)
+  {
+    paramLayoutInflater = paramLayoutInflater.inflate(2131427415, paramViewGroup, false);
+    ButterKnife.bind(this, paramLayoutInflater);
+    return paramLayoutInflater;
+  }
+  
+  @OnClick({2131231097})
+  public void onOk()
+  {
+    getActivity().getSupportFragmentManager().popBackStack();
+  }
+}

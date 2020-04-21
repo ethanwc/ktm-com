@@ -1,0 +1,192 @@
+package com.ktm.navapp.utilities;
+
+import android.content.Context;
+import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.Bitmap.Config;
+import android.graphics.Canvas;
+import android.graphics.drawable.Drawable;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.text.Html;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.AbsoluteSizeSpan;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.StyleSpan;
+import android.util.DisplayMetrics;
+import android.widget.Toast;
+import androidx.core.content.ContextCompat;
+import com.here.android.mpa.common.Image;
+import com.ktm.navapp.App;
+import io.github.inflationx.calligraphy3.CalligraphyTypefaceSpan;
+import io.github.inflationx.calligraphy3.TypefaceUtils;
+import java.util.WeakHashMap;
+import me.drakeet.support.toast.ToastCompat;
+
+public class Utilities
+{
+  private static final WeakHashMap<Integer, Image> mImages = new WeakHashMap();
+  
+  public Utilities() {}
+  
+  public static Bitmap getBitmap(int paramInt)
+  {
+    Drawable localDrawable = ContextCompat.getDrawable(App.getContext(), paramInt);
+    Bitmap localBitmap = Bitmap.createBitmap(localDrawable.getIntrinsicWidth(), localDrawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+    Canvas localCanvas = new Canvas(localBitmap);
+    localDrawable.setBounds(0, 0, localDrawable.getIntrinsicWidth(), localDrawable.getIntrinsicHeight());
+    localDrawable.draw(localCanvas);
+    return localBitmap;
+  }
+  
+  public static Image getImage(int paramInt)
+  {
+    Image localImage2 = (Image)mImages.get(Integer.valueOf(paramInt));
+    Image localImage1 = localImage2;
+    if (localImage2 == null)
+    {
+      localImage1 = new Image();
+      localImage1.setBitmap(getBitmap(paramInt));
+      mImages.put(Integer.valueOf(paramInt), localImage1);
+    }
+    return localImage1;
+  }
+  
+  public static boolean isConnectedOrConnecting()
+  {
+    Object localObject = (ConnectivityManager)App.getContext().getSystemService("connectivity");
+    boolean bool2 = false;
+    boolean bool1 = bool2;
+    if (localObject != null)
+    {
+      localObject = ((ConnectivityManager)localObject).getActiveNetworkInfo();
+      bool1 = bool2;
+      if (localObject != null)
+      {
+        bool1 = bool2;
+        if (((NetworkInfo)localObject).isConnectedOrConnecting()) {
+          bool1 = true;
+        }
+      }
+    }
+    return bool1;
+  }
+  
+  public static int pxFromDp(float paramFloat)
+  {
+    return (int)(paramFloat * getContextgetResourcesgetDisplayMetricsdensity + 0.5F);
+  }
+  
+  public static Spanned replaceBoldWithColor(String paramString, int paramInt)
+  {
+    paramString = Html.fromHtml(paramString);
+    SpannableString localSpannableString = new SpannableString(paramString.toString());
+    int j = paramString.length();
+    int i = 0;
+    StyleSpan[] arrayOfStyleSpan = (StyleSpan[])paramString.getSpans(0, j, StyleSpan.class);
+    j = arrayOfStyleSpan.length;
+    while (i < j)
+    {
+      StyleSpan localStyleSpan = arrayOfStyleSpan[i];
+      if (localStyleSpan.getStyle() == 1) {
+        localSpannableString.setSpan(new ForegroundColorSpan(paramInt), paramString.getSpanStart(localStyleSpan), paramString.getSpanEnd(localStyleSpan), 33);
+      }
+      i += 1;
+    }
+    return localSpannableString;
+  }
+  
+  public static Spanned replaceBoldWithFontAndSize(String paramString1, String paramString2, float paramFloat)
+  {
+    paramString1 = Html.fromHtml(paramString1);
+    paramString2 = TypefaceUtils.load(App.getContext().getAssets(), paramString2);
+    SpannableString localSpannableString = new SpannableString(paramString1.toString());
+    int j = paramString1.length();
+    int i = 0;
+    StyleSpan[] arrayOfStyleSpan = (StyleSpan[])paramString1.getSpans(0, j, StyleSpan.class);
+    j = arrayOfStyleSpan.length;
+    while (i < j)
+    {
+      StyleSpan localStyleSpan = arrayOfStyleSpan[i];
+      if (localStyleSpan.getStyle() == 1)
+      {
+        localSpannableString.setSpan(new CalligraphyTypefaceSpan(paramString2), paramString1.getSpanStart(localStyleSpan), paramString1.getSpanEnd(localStyleSpan), 33);
+        localSpannableString.setSpan(new AbsoluteSizeSpan(pxFromDp(paramFloat)), paramString1.getSpanStart(localStyleSpan), paramString1.getSpanEnd(localStyleSpan), 33);
+      }
+      i += 1;
+    }
+    return localSpannableString;
+  }
+  
+  public static Spanned replaceStyleWithFont(Spanned paramSpanned, int paramInt, String paramString)
+  {
+    paramString = TypefaceUtils.load(App.getContext().getAssets(), paramString);
+    SpannableString localSpannableString = new SpannableString(paramSpanned.toString());
+    int j = paramSpanned.length();
+    int i = 0;
+    StyleSpan[] arrayOfStyleSpan = (StyleSpan[])paramSpanned.getSpans(0, j, StyleSpan.class);
+    j = arrayOfStyleSpan.length;
+    while (i < j)
+    {
+      StyleSpan localStyleSpan = arrayOfStyleSpan[i];
+      if (localStyleSpan.getStyle() == paramInt) {
+        localSpannableString.setSpan(new CalligraphyTypefaceSpan(paramString), paramSpanned.getSpanStart(localStyleSpan), paramSpanned.getSpanEnd(localStyleSpan), 33);
+      }
+      i += 1;
+    }
+    return localSpannableString;
+  }
+  
+  public static void toastLong(int paramInt)
+  {
+    if (App.getContext() != null) {
+      Events.runOnMainThread(new Runnable()
+      {
+        public void run()
+        {
+          ToastCompat.makeText(App.getContext(), val$textId, 1).show();
+        }
+      });
+    }
+  }
+  
+  public static void toastLong(CharSequence paramCharSequence)
+  {
+    if (App.getContext() != null) {
+      Events.runOnMainThread(new Runnable()
+      {
+        public void run()
+        {
+          ToastCompat.makeText(App.getContext(), val$text, 1).show();
+        }
+      });
+    }
+  }
+  
+  public static void toastShort(int paramInt)
+  {
+    if (App.getContext() != null) {
+      Events.runOnMainThread(new Runnable()
+      {
+        public void run()
+        {
+          ToastCompat.makeText(App.getContext(), val$textId, 0).show();
+        }
+      });
+    }
+  }
+  
+  public static void toastShort(CharSequence paramCharSequence)
+  {
+    if (App.getContext() != null) {
+      Events.runOnMainThread(new Runnable()
+      {
+        public void run()
+        {
+          ToastCompat.makeText(App.getContext(), val$text, 0).show();
+        }
+      });
+    }
+  }
+}

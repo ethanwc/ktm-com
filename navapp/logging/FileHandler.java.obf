@@ -1,0 +1,126 @@
+package com.ktm.navapp.logging;
+
+import android.content.Context;
+import android.os.Environment;
+import com.ktm.navapp.App;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
+public class FileHandler
+{
+  static final String TAG = FileHandler.class.getSimpleName();
+  
+  public FileHandler() {}
+  
+  static void deleteFiles(File paramFile, String paramString1, String paramString2)
+  {
+    String str1 = TAG;
+    String str2 = String.valueOf(paramFile);
+    int i = 0;
+    Log.d(str1, "deleteFiles( folder=%s, prefix=%s )", new Object[] { str2, String.valueOf(paramString1) });
+    paramFile = paramFile.listFiles();
+    int j = paramFile.length;
+    while (i < j)
+    {
+      str1 = paramFile[i];
+      if (((paramString1 == null) || (str1.getName().startsWith(paramString1))) && ((paramString2 == null) || (str1.getName().endsWith(paramString2)))) {
+        str1.delete();
+      }
+      i += 1;
+    }
+  }
+  
+  static File getExternalDir()
+  {
+    return Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+  }
+  
+  static long getExternalFreeSpace()
+  {
+    long l = getExternalDir().getFreeSpace();
+    Log.d(TAG, "getExternalFreeSpace(): %d", new Object[] { Long.valueOf(l) });
+    return l;
+  }
+  
+  static File getInternalDir()
+  {
+    return App.getContext().getFilesDir();
+  }
+  
+  static long getInternalFreeSpace()
+  {
+    long l = getInternalDir().getFreeSpace();
+    Log.d(TAG, "getInternalFreeSpace(): %d", new Object[] { Long.valueOf(l) });
+    return l;
+  }
+  
+  static void writeLine(String paramString1, String paramString2)
+  {
+    try
+    {
+      paramString1 = new FileWriter(new File(getInternalDir(), paramString1), true);
+      paramString1.append(paramString2).append('\n').flush();
+      paramString1.close();
+      return;
+    }
+    catch (IOException paramString1) {}
+  }
+  
+  static void zipFiles(String paramString1, String paramString2)
+  {
+    Log.d(TAG, "zipFiles( prefix=%s, zipFileName=%s )", new Object[] { String.valueOf(paramString1), paramString2 });
+    for (;;)
+    {
+      int i;
+      try
+      {
+        Object localObject1 = getExternalDir();
+        ((File)localObject1).mkdirs();
+        paramString2 = new ZipOutputStream(new FileOutputStream(new File((File)localObject1, paramString2)));
+        localObject1 = getInternalDir().listFiles();
+        int j = localObject1.length;
+        i = 0;
+        if (i < j)
+        {
+          File localFile = localObject1[i];
+          if ((paramString1 == null) || (localFile.getName().startsWith(paramString1)))
+          {
+            Object localObject2 = TAG;
+            Object localObject3 = new StringBuilder();
+            ((StringBuilder)localObject3).append("Adding file: ");
+            ((StringBuilder)localObject3).append(localFile.getName());
+            Log.d((String)localObject2, ((StringBuilder)localObject3).toString());
+            localObject2 = new byte['?'];
+            localObject3 = new FileInputStream(localFile);
+            paramString2.putNextEntry(new ZipEntry(localFile.getName()));
+            int k = ((FileInputStream)localObject3).read((byte[])localObject2);
+            if (k > 0)
+            {
+              paramString2.write((byte[])localObject2, 0, k);
+              continue;
+            }
+            paramString2.closeEntry();
+            ((FileInputStream)localObject3).close();
+          }
+        }
+        else
+        {
+          paramString2.close();
+          return;
+        }
+      }
+      catch (IOException paramString1)
+      {
+        Log.e("", paramString1.getMessage());
+        return;
+      }
+      i += 1;
+    }
+  }
+}

@@ -1,0 +1,177 @@
+package com.ktm.kmrc.shell;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+
+class Node
+{
+  private List<Node> children = new ArrayList();
+  private final String id;
+  private final CmdNodeListener listener;
+  private final String params;
+  private final Node parent;
+  private final String usage;
+  
+  Node(Node paramNode, String paramString1, String paramString2, CmdNodeListener paramCmdNodeListener)
+  {
+    params = "";
+    usage = paramString2;
+    parent = paramNode;
+    listener = paramCmdNodeListener;
+    if (paramNode == null)
+    {
+      id = "";
+      return;
+    }
+    id = paramString1;
+    children.add(this);
+  }
+  
+  Node(Node paramNode, String paramString1, String paramString2, String paramString3, CmdNodeListener paramCmdNodeListener)
+  {
+    params = paramString2;
+    usage = paramString3;
+    parent = paramNode;
+    listener = paramCmdNodeListener;
+    if (paramNode == null)
+    {
+      id = "";
+      return;
+    }
+    id = paramString1;
+    children.add(this);
+  }
+  
+  private Node findNode(Node paramNode, Path paramPath, int paramInt)
+  {
+    int i;
+    if (((String)paramPath.elements().get(paramInt)).equals(".."))
+    {
+      if (parent != null)
+      {
+        i = paramPath.elements().size();
+        paramInt += 1;
+        if (i == paramInt) {
+          return parent;
+        }
+        return parent.findNode(paramNode, paramPath, paramInt);
+      }
+      throw new NoSuchElementException("no such element");
+    }
+    if ((this == paramNode) && (((String)paramPath.elements().get(paramInt)).equals("")))
+    {
+      i = paramPath.elements().size();
+      paramInt += 1;
+      if (i == paramInt) {
+        return paramNode;
+      }
+      return findNode(paramNode, paramPath, paramInt);
+    }
+    Iterator localIterator = children.iterator();
+    while (localIterator.hasNext())
+    {
+      Node localNode = (Node)localIterator.next();
+      if (id.equals(paramPath.elements().get(paramInt)))
+      {
+        i = paramPath.elements().size();
+        paramInt += 1;
+        if (i == paramInt) {
+          return localNode;
+        }
+        return localNode.findNode(paramNode, paramPath, paramInt);
+      }
+    }
+    paramNode = new StringBuilder();
+    paramNode.append(paramPath.getPath());
+    paramNode.append(" no such element");
+    throw new NoSuchElementException(paramNode.toString());
+  }
+  
+  String absPath()
+  {
+    ArrayList localArrayList = new ArrayList();
+    for (Object localObject = this; localObject != null; localObject = parent) {
+      localArrayList.add(id);
+    }
+    Collections.reverse(localArrayList);
+    localObject = new StringBuilder();
+    int i = 0;
+    int j = localArrayList.size();
+    while (i < j)
+    {
+      ((StringBuilder)localObject).append((String)localArrayList.get(i));
+      if ((((String)localArrayList.get(i)).equals("")) || (i < localArrayList.size() - 1)) {
+        ((StringBuilder)localObject).append("/");
+      }
+      i += 1;
+    }
+    return ((StringBuilder)localObject).toString();
+  }
+  
+  Iterator<Node> getChildren()
+  {
+    return children.iterator();
+  }
+  
+  String id()
+  {
+    return id;
+  }
+  
+  String params()
+  {
+    return params;
+  }
+  
+  Node parent()
+  {
+    return parent;
+  }
+  
+  Node process(Node paramNode, String paramString)
+  {
+    if ((!paramString.isEmpty()) && (!paramString.matches("^\\s*#.*$")))
+    {
+      if (paramString.matches("^\\s.*\\s$")) {
+        return this;
+      }
+      paramString = new Command(paramString);
+      Object localObject = new Path(paramString.command());
+      if (((Path)localObject).isAbsolutePath()) {
+        paramNode = paramNode.findNode(paramNode, (Path)localObject, 0);
+      } else {
+        paramNode = findNode(paramNode, (Path)localObject, 0);
+      }
+      if (children.size() == 0)
+      {
+        localObject = listener;
+        if (localObject != null)
+        {
+          ((CmdNodeListener)localObject).execute(paramNode, paramString);
+          return this;
+        }
+      }
+      if (paramString.parameters().size() == 0) {
+        return paramNode;
+      }
+      paramNode = new StringBuilder();
+      paramNode.append(paramString.line());
+      paramNode.append(": too much parameters");
+      throw new IllegalArgumentException(paramNode.toString());
+    }
+    return this;
+  }
+  
+  String usage()
+  {
+    return usage;
+  }
+  
+  public static abstract interface CmdNodeListener
+  {
+    public abstract void execute(Node paramNode, Command paramCommand);
+  }
+}

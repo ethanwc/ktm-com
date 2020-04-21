@@ -1,0 +1,56 @@
+package com.ktm.kmrc.services.navigation.dump;
+
+import com.ktm.kmrc.services.navigation.Visibility;
+
+public class LabelDump
+{
+  public String Text;
+  public Visibility Visibility;
+  
+  public LabelDump() {}
+  
+  public boolean equals(Object paramObject)
+  {
+    boolean bool2 = false;
+    if (paramObject == null) {
+      return false;
+    }
+    if (paramObject == this) {
+      return true;
+    }
+    if (!(paramObject instanceof LabelDump)) {
+      return false;
+    }
+    paramObject = (LabelDump)paramObject;
+    boolean bool1 = bool2;
+    if (Visibility == Visibility) {
+      if ((Text != null) || (Text != null))
+      {
+        if (Text != null)
+        {
+          bool1 = bool2;
+          if (Text == null) {}
+        }
+        else
+        {
+          String str = Text;
+          bool1 = bool2;
+          if (str != null)
+          {
+            bool1 = bool2;
+            if (!str.equals(Text)) {}
+          }
+        }
+      }
+      else {
+        bool1 = true;
+      }
+    }
+    return bool1;
+  }
+  
+  boolean hasValue()
+  {
+    return (Text != null) || (Visibility != null);
+  }
+}

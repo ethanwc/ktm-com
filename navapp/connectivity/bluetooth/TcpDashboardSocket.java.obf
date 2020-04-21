@@ -1,0 +1,32 @@
+package com.ktm.navapp.connectivity.bluetooth;
+
+import com.ktm.kmrc.TransportMap;
+import com.ktm.kmrc.io.Connection.LinkingListener;
+import com.ktm.kmrc.io.socket.tcp.TcpKSocket;
+import com.ktm.navapp.connectivity.endpoints.Dashboard;
+import java.io.IOException;
+import java.net.UnknownHostException;
+
+public class TcpDashboardSocket
+  extends TcpKSocket
+{
+  private final Dashboard dashboard;
+  
+  public TcpDashboardSocket(Dashboard paramDashboard)
+    throws UnknownHostException
+  {
+    super(paramDashboard.aliasName(), TransportMap.NAVIGATION.port());
+    dashboard = paramDashboard;
+  }
+  
+  public void establishConnection(Connection.LinkingListener paramLinkingListener)
+    throws IOException
+  {
+    super.connect(paramLinkingListener);
+  }
+  
+  public Dashboard identifier()
+  {
+    return dashboard;
+  }
+}

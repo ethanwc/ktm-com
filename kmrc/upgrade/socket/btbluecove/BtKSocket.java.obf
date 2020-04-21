@@ -1,0 +1,287 @@
+package com.ktm.kmrc.io.socket.btbluecove;
+
+import com.ktm.kmrc.io.Connection.LinkingListener;
+import com.ktm.kmrc.io.KSocket;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
+import javax.bluetooth.BluetoothStateException;
+import javax.bluetooth.DeviceClass;
+import javax.bluetooth.DiscoveryAgent;
+import javax.bluetooth.DiscoveryListener;
+import javax.bluetooth.LocalDevice;
+import javax.bluetooth.RemoteDevice;
+import javax.bluetooth.ServiceRecord;
+import javax.bluetooth.UUID;
+import javax.microedition.io.Connector;
+import javax.microedition.io.StreamConnection;
+import javax.microedition.io.StreamConnectionNotifier;
+
+abstract class BtKSocket
+  extends KSocket
+{
+  private final String deviceName;
+  private StreamConnection transportConnection = null;
+  private final String uuidString;
+  private StreamConnectionNotifier welcomeConnection = null;
+  
+  public BtKSocket(String paramString1, String paramString2)
+  {
+    deviceName = paramString1;
+    uuidString = paramString2;
+  }
+  
+  public void accept(Connection.LinkingListener paramLinkingListener)
+    throws IOException
+  {
+    if (welcomeConnection == null)
+    {
+      LocalDevice.getLocalDevice().setDiscoverable(10390323);
+      Object localObject = new UUID(uuidString.replace("-", ""), false);
+      StringBuilder localStringBuilder = new StringBuilder();
+      localStringBuilder.append("btspp://");
+      localStringBuilder.append(deviceName);
+      localStringBuilder.append(":");
+      localStringBuilder.append(((UUID)localObject).toString());
+      localStringBuilder.append(";name=RemoteBluetooth");
+      localObject = localStringBuilder.toString();
+      try
+      {
+        welcomeConnection = ((StreamConnectionNotifier)Connector.open((String)localObject));
+      }
+      catch (Exception localException)
+      {
+        localException.printStackTrace();
+      }
+    }
+    paramLinkingListener.linking();
+    transportConnection = welcomeConnection.acceptAndOpen();
+    in = transportConnection.openDataInputStream();
+    out = transportConnection.openDataOutputStream();
+  }
+  
+  public void close()
+    throws IOException
+  {
+    if (in != null) {
+      in.close();
+    }
+    if (out != null) {
+      out.close();
+    }
+    Object localObject = welcomeConnection;
+    if (localObject != null) {
+      ((StreamConnectionNotifier)localObject).close();
+    }
+    localObject = transportConnection;
+    if (localObject != null) {
+      ((StreamConnection)localObject).close();
+    }
+  }
+  
+  public void connect(Connection.LinkingListener paramLinkingListener)
+    throws IOException
+  {
+    Object localObject = new UUID(uuidString.replace("-", ""), false);
+    localObject = new DeviceSearcher(deviceName, (UUID)localObject).findDevice();
+    paramLinkingListener.linking();
+    if (localObject != null)
+    {
+      transportConnection = ((StreamConnection)Connector.open((String)localObject));
+      in = transportConnection.openDataInputStream();
+      out = transportConnection.openDataOutputStream();
+      return;
+    }
+    throw new IOException("Couldn't find a matching device");
+  }
+  
+  public boolean equals(Object paramObject)
+  {
+    boolean bool2 = false;
+    if (paramObject == null) {
+      return false;
+    }
+    if (paramObject == this) {
+      return true;
+    }
+    if (!(paramObject instanceof BtKSocket)) {
+      return false;
+    }
+    paramObject = (BtKSocket)paramObject;
+    boolean bool1 = bool2;
+    if (deviceName.equals(deviceName))
+    {
+      bool1 = bool2;
+      if (uuidString.equals(uuidString)) {
+        bool1 = true;
+      }
+    }
+    return bool1;
+  }
+  
+  public String toString()
+  {
+    StringBuilder localStringBuilder = new StringBuilder();
+    localStringBuilder.append("bt://");
+    localStringBuilder.append(deviceName);
+    localStringBuilder.append(":");
+    localStringBuilder.append(uuidString);
+    return localStringBuilder.toString();
+  }
+  
+  private static class DeviceSearcher
+    implements DiscoveryListener
+  {
+    private String connectionUrl;
+    private final String deviceName;
+    private final DiscoveryAgent discoveryAgent;
+    private Set<RemoteDevice> scannedDevices;
+    private boolean searchComplete = false;
+    private final Object searchLock;
+    private Set<Integer> searchTransactions;
+    private final UUID[] serviceSet;
+    
+    DeviceSearcher(String paramString, UUID paramUUID)
+      throws BluetoothStateException
+    {
+      deviceName = paramString;
+      serviceSet = new UUID[] { paramUUID };
+      searchLock = new Object();
+      connectionUrl = null;
+      discoveryAgent = LocalDevice.getLocalDevice().getDiscoveryAgent();
+      scannedDevices = new HashSet();
+      searchTransactions = new HashSet();
+    }
+    
+    private boolean queryKnownDevices(RemoteDevice[] paramArrayOfRemoteDevice)
+    {
+      if (paramArrayOfRemoteDevice != null)
+      {
+        int j = paramArrayOfRemoteDevice.length;
+        int i = 0;
+        while (i < j)
+        {
+          RemoteDevice localRemoteDevice = paramArrayOfRemoteDevice[i];
+          try
+          {
+            scanDevice(localRemoteDevice);
+          }
+          catch (IOException localIOException)
+          {
+            localIOException.printStackTrace();
+          }
+          i += 1;
+        }
+      }
+      return false;
+    }
+    
+    private void scanDevice(RemoteDevice paramRemoteDevice)
+      throws IOException
+    {
+      synchronized (searchLock)
+      {
+        if ((deviceName.equals(paramRemoteDevice.getFriendlyName(false))) && (!scannedDevices.contains(paramRemoteDevice)))
+        {
+          scannedDevices.add(paramRemoteDevice);
+          searchTransactions.add(Integer.valueOf(discoveryAgent.searchServices(null, serviceSet, paramRemoteDevice, this)));
+        }
+        return;
+      }
+    }
+    
+    public void deviceDiscovered(RemoteDevice paramRemoteDevice, DeviceClass paramDeviceClass)
+    {
+      try
+      {
+        scanDevice(paramRemoteDevice);
+        return;
+      }
+      catch (IOException paramRemoteDevice)
+      {
+        paramRemoteDevice.printStackTrace();
+      }
+    }
+    
+    String findDevice()
+    {
+      queryKnownDevices(discoveryAgent.retrieveDevices(0));
+      queryKnownDevices(discoveryAgent.retrieveDevices(1));
+      while (!searchTransactions.isEmpty())
+      {
+        try
+        {
+          synchronized (searchLock)
+          {
+            searchLock.wait();
+          }
+        }
+        catch (InterruptedException localInterruptedException1)
+        {
+          try
+          {
+            discoveryAgent.startInquiry(10390323, this);
+            for (;;)
+            {
+              if ((searchComplete) && (searchTransactions.isEmpty())) {
+                return connectionUrl;
+              }
+              try
+              {
+                synchronized (searchLock)
+                {
+                  searchLock.wait();
+                }
+              }
+              catch (InterruptedException localInterruptedException2)
+              {
+                for (;;) {}
+              }
+            }
+            throw localObject3;
+            localInterruptedException1 = localInterruptedException1;
+          }
+          catch (BluetoothStateException localBluetoothStateException)
+          {
+            for (;;) {}
+          }
+        }
+        continue;
+        throw localObject2;
+      }
+      if (searchComplete) {}
+    }
+    
+    public void inquiryCompleted(int paramInt)
+    {
+      synchronized (searchLock)
+      {
+        searchComplete = true;
+        searchLock.notify();
+        return;
+      }
+    }
+    
+    public void serviceSearchCompleted(int paramInt1, int paramInt2)
+    {
+      synchronized (searchLock)
+      {
+        searchTransactions.remove(Integer.valueOf(paramInt1));
+        searchLock.notify();
+        return;
+      }
+    }
+    
+    public void servicesDiscovered(int paramInt, ServiceRecord[] paramArrayOfServiceRecord)
+    {
+      if (paramArrayOfServiceRecord.length > 0)
+      {
+        connectionUrl = paramArrayOfServiceRecord[0].getConnectionURL(0, false);
+        searchComplete = true;
+        discoveryAgent.cancelServiceSearch(paramInt);
+      }
+    }
+  }
+}

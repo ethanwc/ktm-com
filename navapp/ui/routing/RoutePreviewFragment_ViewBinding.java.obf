@@ -1,0 +1,180 @@
+package com.ktm.navapp.ui.routing;
+
+import android.view.View;
+import android.view.View.OnLongClickListener;
+import android.widget.CheckBox;
+import android.widget.ImageButton;
+import android.widget.TextView;
+import androidx.appcompat.widget.AppCompatTextView;
+import butterknife.Unbinder;
+import butterknife.internal.DebouncingOnClickListener;
+import butterknife.internal.Utils;
+import com.ktm.navapp.ui.widgets.ChartView;
+
+public class RoutePreviewFragment_ViewBinding
+  implements Unbinder
+{
+  private RoutePreviewFragment target;
+  private View view7f0800a0;
+  private View view7f0800b3;
+  private View view7f0801ad;
+  private View view7f0801b1;
+  private View view7f0801b2;
+  private View view7f0801c5;
+  private View view7f0801c6;
+  private View view7f080268;
+  private View view7f080269;
+  
+  public RoutePreviewFragment_ViewBinding(final RoutePreviewFragment paramRoutePreviewFragment, View paramView)
+  {
+    target = paramRoutePreviewFragment;
+    mFindingRouteLayout = Utils.findRequiredView(paramView, 2131230900, "field 'mFindingRouteLayout'");
+    mIndicatorTollroads = ((TextView)Utils.findRequiredViewAsType(paramView, 2131230984, "field 'mIndicatorTollroads'", TextView.class));
+    mMainHeaderTextView = ((TextView)Utils.findRequiredViewAsType(paramView, 2131231152, "field 'mMainHeaderTextView'", TextView.class));
+    mDistanceTextView = ((TextView)Utils.findRequiredViewAsType(paramView, 2131231150, "field 'mDistanceTextView'", TextView.class));
+    mTimeTextView = ((TextView)Utils.findRequiredViewAsType(paramView, 2131231155, "field 'mTimeTextView'", TextView.class));
+    mDescriptionTextView = ((TextView)Utils.findRequiredViewAsType(paramView, 2131231151, "field 'mDescriptionTextView'", TextView.class));
+    View localView = Utils.findRequiredView(paramView, 2131231153, "field 'mNavigateButton', method 'onStartNavigate', and method 'onStartSimulate'");
+    mNavigateButton = ((ImageButton)Utils.castView(localView, 2131231153, "field 'mNavigateButton'", ImageButton.class));
+    view7f0801b1 = localView;
+    localView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramRoutePreviewFragment.onStartNavigate();
+      }
+    });
+    localView.setOnLongClickListener(new View.OnLongClickListener()
+    {
+      public boolean onLongClick(View paramAnonymousView)
+      {
+        return paramRoutePreviewFragment.onStartSimulate();
+      }
+    });
+    mElevationTextLayout = Utils.findRequiredView(paramView, 2131230881, "field 'mElevationTextLayout'");
+    localView = Utils.findRequiredView(paramView, 2131230880, "field 'mElevationText' and method 'onElevationClick'");
+    mElevationText = ((TextView)Utils.castView(localView, 2131230880, "field 'mElevationText'", TextView.class));
+    view7f0800a0 = localView;
+    localView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramRoutePreviewFragment.onElevationClick();
+      }
+    });
+    mChartView = ((ChartView)Utils.findRequiredViewAsType(paramView, 2131230821, "field 'mChartView'", ChartView.class));
+    mRemoteRouteScreen = Utils.findRequiredView(paramView, 2131231172, "field 'mRemoteRouteScreen'");
+    mWarningScreen = Utils.findRequiredView(paramView, 2131231176, "field 'mWarningScreen'");
+    mWarningText = ((AppCompatTextView)Utils.findRequiredViewAsType(paramView, 2131231339, "field 'mWarningText'", AppCompatTextView.class));
+    mWarningLabel = ((TextView)Utils.findRequiredViewAsType(paramView, 2131231338, "field 'mWarningLabel'", TextView.class));
+    localView = Utils.findRequiredView(paramView, 2131231337, "field 'mWarningCheckbox' and method 'onWarningCheckboxClicked'");
+    mWarningCheckbox = ((CheckBox)Utils.castView(localView, 2131231337, "field 'mWarningCheckbox'", CheckBox.class));
+    view7f080269 = localView;
+    localView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramRoutePreviewFragment.onWarningCheckboxClicked();
+      }
+    });
+    localView = Utils.findRequiredView(paramView, 2131231154, "method 'onRouteOptions'");
+    view7f0801b2 = localView;
+    localView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramRoutePreviewFragment.onRouteOptions();
+      }
+    });
+    localView = Utils.findRequiredView(paramView, 2131231149, "method 'closeRoutePreview'");
+    view7f0801ad = localView;
+    localView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramRoutePreviewFragment.closeRoutePreview();
+      }
+    });
+    localView = Utils.findRequiredView(paramView, 2131230899, "method 'closeRoutePreview'");
+    view7f0800b3 = localView;
+    localView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramRoutePreviewFragment.closeRoutePreview();
+      }
+    });
+    localView = Utils.findRequiredView(paramView, 2131231173, "method 'onRemoteRouteCancel'");
+    view7f0801c5 = localView;
+    localView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramRoutePreviewFragment.onRemoteRouteCancel();
+      }
+    });
+    localView = Utils.findRequiredView(paramView, 2131231174, "method 'onRemoteRouteYes'");
+    view7f0801c6 = localView;
+    localView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramRoutePreviewFragment.onRemoteRouteYes();
+      }
+    });
+    paramView = Utils.findRequiredView(paramView, 2131231336, "method 'onWarningOkClicked'");
+    view7f080268 = paramView;
+    paramView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramRoutePreviewFragment.onWarningOkClicked();
+      }
+    });
+  }
+  
+  public void unbind()
+  {
+    RoutePreviewFragment localRoutePreviewFragment = target;
+    if (localRoutePreviewFragment != null)
+    {
+      target = null;
+      mFindingRouteLayout = null;
+      mIndicatorTollroads = null;
+      mMainHeaderTextView = null;
+      mDistanceTextView = null;
+      mTimeTextView = null;
+      mDescriptionTextView = null;
+      mNavigateButton = null;
+      mElevationTextLayout = null;
+      mElevationText = null;
+      mChartView = null;
+      mRemoteRouteScreen = null;
+      mWarningScreen = null;
+      mWarningText = null;
+      mWarningLabel = null;
+      mWarningCheckbox = null;
+      view7f0801b1.setOnClickListener(null);
+      view7f0801b1.setOnLongClickListener(null);
+      view7f0801b1 = null;
+      view7f0800a0.setOnClickListener(null);
+      view7f0800a0 = null;
+      view7f080269.setOnClickListener(null);
+      view7f080269 = null;
+      view7f0801b2.setOnClickListener(null);
+      view7f0801b2 = null;
+      view7f0801ad.setOnClickListener(null);
+      view7f0801ad = null;
+      view7f0800b3.setOnClickListener(null);
+      view7f0800b3 = null;
+      view7f0801c5.setOnClickListener(null);
+      view7f0801c5 = null;
+      view7f0801c6.setOnClickListener(null);
+      view7f0801c6 = null;
+      view7f080268.setOnClickListener(null);
+      view7f080268 = null;
+      return;
+    }
+    throw new IllegalStateException("Bindings already cleared.");
+  }
+}

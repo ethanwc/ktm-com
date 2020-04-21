@@ -1,0 +1,18 @@
+package com.com.kmrc.upgrade;
+
+public abstract interface ConnectionListener
+{
+  public abstract void onConnected(Connection paramConnection, String paramString);
+  
+  public abstract void onConnectionClosed(Connection paramConnection, String paramString);
+  
+  public abstract void onConnectionDisconnected(Connection paramConnection, String paramString);
+  
+  public abstract void onError(Connection paramConnection, String paramString, Error paramError);
+  
+  public abstract void onEstablishing(Connection paramConnection, String paramString);
+  
+  public abstract void onLog(Connection paramConnection, String paramString);
+  
+  public abstract void onMessageReceived(Connection paramConnection, byte[] paramArrayOfByte);
+}

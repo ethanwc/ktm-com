@@ -1,0 +1,183 @@
+package com.ktm.navapp.connectivity.bluetooth;
+
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothServerSocket;
+import android.bluetooth.BluetoothSocket;
+import com.ktm.kmrc.io.Connection.LinkingListener;
+import com.ktm.kmrc.io.KSocket;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.UUID;
+
+public abstract class BtAndroidKSocket
+  extends KSocket
+{
+  protected final String btMacAddress;
+  private BluetoothDevice device;
+  protected final String serviceName;
+  private BluetoothSocket transportConnection;
+  private final UUID uuid;
+  protected final String uuidString;
+  private BluetoothServerSocket welcomeSocket;
+  
+  /* Error */
+  public BtAndroidKSocket(String paramString1, String paramString2, String paramString3)
+  {
+    // Byte code:
+    //   0: aload_0
+    //   1: invokespecial 23	com/ktm/kmrc/io/KSocket:<init>	()V
+    //   4: aload_0
+    //   5: aload_1
+    //   6: putfield 25	com/ktm/navapp/connectivity/bluetooth/BtAndroidKSocket:btMacAddress	Ljava/lang/String;
+    //   9: aload_0
+    //   10: aload_2
+    //   11: putfield 27	com/ktm/navapp/connectivity/bluetooth/BtAndroidKSocket:uuidString	Ljava/lang/String;
+    //   14: aload_0
+    //   15: aload_3
+    //   16: putfield 29	com/ktm/navapp/connectivity/bluetooth/BtAndroidKSocket:serviceName	Ljava/lang/String;
+    //   19: aload_1
+    //   20: ifnull +29 -> 49
+    //   23: aload_1
+    //   24: invokestatic 35	com/ktm/navapp/connectivity/bluetooth/BtControl:getPairedBtDeviceMacAddress	(Ljava/lang/String;)Landroid/bluetooth/BluetoothDevice;
+    //   27: astore_1
+    //   28: aload_0
+    //   29: aload_1
+    //   30: putfield 37	com/ktm/navapp/connectivity/bluetooth/BtAndroidKSocket:device	Landroid/bluetooth/BluetoothDevice;
+    //   33: goto +16 -> 49
+    //   36: astore_1
+    //   37: aload_0
+    //   38: aconst_null
+    //   39: putfield 37	com/ktm/navapp/connectivity/bluetooth/BtAndroidKSocket:device	Landroid/bluetooth/BluetoothDevice;
+    //   42: aload_1
+    //   43: athrow
+    //   44: aload_0
+    //   45: aconst_null
+    //   46: putfield 37	com/ktm/navapp/connectivity/bluetooth/BtAndroidKSocket:device	Landroid/bluetooth/BluetoothDevice;
+    //   49: aload_0
+    //   50: aload_2
+    //   51: invokestatic 43	java/util/UUID:fromString	(Ljava/lang/String;)Ljava/util/UUID;
+    //   54: putfield 45	com/ktm/navapp/connectivity/bluetooth/BtAndroidKSocket:uuid	Ljava/util/UUID;
+    //   57: return
+    //   58: astore_1
+    //   59: goto -15 -> 44
+    // Local variable table:
+    //   start	length	slot	name	signature
+    //   0	62	0	this	BtAndroidKSocket
+    //   0	62	1	paramString1	String
+    //   0	62	2	paramString2	String
+    //   0	62	3	paramString3	String
+    // Exception table:
+    //   from	to	target	type
+    //   23	28	36	finally
+    //   23	28	58	java/lang/Exception
+  }
+  
+  public void accept(Connection.LinkingListener paramLinkingListener)
+    throws IOException
+  {
+    welcomeSocket = BluetoothAdapter.getDefaultAdapter().listenUsingRfcommWithServiceRecord(serviceName, uuid);
+    paramLinkingListener.linking();
+    transportConnection = welcomeSocket.accept();
+    in = new DataInputStream(transportConnection.getInputStream());
+    out = new DataOutputStream(transportConnection.getOutputStream());
+    welcomeSocket.close();
+  }
+  
+  public void close()
+    throws IOException
+  {
+    try
+    {
+      if (in != null) {
+        in.close();
+      }
+      if (out != null) {
+        out.close();
+      }
+    }
+    catch (IOException localIOException)
+    {
+      Object localObject;
+      for (;;) {}
+    }
+    localObject = welcomeSocket;
+    if (localObject != null) {
+      ((BluetoothServerSocket)localObject).close();
+    }
+    localObject = transportConnection;
+    if (localObject != null) {
+      ((BluetoothSocket)localObject).close();
+    }
+  }
+  
+  public void connect(Connection.LinkingListener paramLinkingListener)
+    throws IOException
+  {
+    BluetoothDevice localBluetoothDevice = device;
+    if (localBluetoothDevice != null) {
+      try
+      {
+        transportConnection = localBluetoothDevice.createRfcommSocketToServiceRecord(uuid);
+        paramLinkingListener.linking();
+        transportConnection.connect();
+        in = new DataInputStream(transportConnection.getInputStream());
+        out = new DataOutputStream(transportConnection.getOutputStream());
+        return;
+      }
+      catch (IOException paramLinkingListener) {}
+    }
+    try
+    {
+      close();
+      throw paramLinkingListener;
+      throw new IOException("Unknown Bluetooth Device to connect");
+    }
+    catch (IOException localIOException)
+    {
+      for (;;) {}
+    }
+  }
+  
+  public boolean equals(Object paramObject)
+  {
+    boolean bool2 = false;
+    if (paramObject == null) {
+      return false;
+    }
+    if (paramObject == this) {
+      return true;
+    }
+    if (!(paramObject instanceof BtAndroidKSocket)) {
+      return false;
+    }
+    paramObject = (BtAndroidKSocket)paramObject;
+    boolean bool1 = bool2;
+    if (btMacAddress.equals(btMacAddress))
+    {
+      bool1 = bool2;
+      if (uuid.equals(uuid))
+      {
+        bool1 = bool2;
+        if (serviceName.equals(serviceName)) {
+          bool1 = true;
+        }
+      }
+    }
+    return bool1;
+  }
+  
+  public abstract void establishConnection(Connection.LinkingListener paramLinkingListener)
+    throws IOException;
+  
+  public String toString()
+  {
+    StringBuilder localStringBuilder = new StringBuilder();
+    localStringBuilder.append("bt://");
+    localStringBuilder.append(btMacAddress);
+    localStringBuilder.append(":");
+    localStringBuilder.append(uuidString);
+    return localStringBuilder.toString();
+  }
+}

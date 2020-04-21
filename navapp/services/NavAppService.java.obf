@@ -1,0 +1,910 @@
+package com.ktm.navapp.services;
+
+import android.app.ActivityManager;
+import android.app.ActivityManager.RunningServiceInfo;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.Service;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.media.AudioManager;
+import android.media.AudioManager.OnAudioFocusChangeListener;
+import android.os.Build.VERSION;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.IBinder;
+import android.os.Looper;
+import android.os.Message;
+import android.os.PowerManager;
+import android.os.PowerManager.WakeLock;
+import androidx.core.app.NotificationCompat.Builder;
+import com.here.android.mpa.common.ApplicationContext;
+import com.here.android.mpa.common.GeoPosition;
+import com.here.android.mpa.common.MapEngine;
+import com.here.android.mpa.common.OnEngineInitListener;
+import com.here.android.mpa.common.OnEngineInitListener.Error;
+import com.here.android.mpa.guidance.NavigationManager;
+import com.here.android.mpa.guidance.NavigationManager.AudioEvent;
+import com.here.android.mpa.guidance.NavigationManager.AudioFeedbackListener;
+import com.here.android.mpa.guidance.NavigationManager.Error;
+import com.here.android.mpa.guidance.NavigationManager.GpsSignalListener;
+import com.here.android.mpa.guidance.NavigationManager.ManeuverEventListener;
+import com.here.android.mpa.guidance.NavigationManager.MapUpdateMode;
+import com.here.android.mpa.guidance.NavigationManager.NavigationManagerEventListener;
+import com.here.android.mpa.guidance.NavigationManager.NavigationMode;
+import com.here.android.mpa.guidance.NavigationManager.NavigationState;
+import com.here.android.mpa.guidance.NavigationManager.NewInstructionEventListener;
+import com.here.android.mpa.guidance.NavigationManager.PositionListener;
+import com.here.android.mpa.guidance.NavigationManager.RerouteListener;
+import com.here.android.mpa.guidance.VoiceCatalog;
+import com.here.android.mpa.guidance.VoiceGuidanceOptions;
+import com.here.android.mpa.guidance.VoiceSkin;
+import com.here.android.mpa.mapping.MapRoute;
+import com.here.android.mpa.routing.Maneuver;
+import com.here.android.mpa.routing.Maneuver.Action;
+import com.here.android.mpa.routing.Maneuver.Icon;
+import com.here.android.mpa.routing.Maneuver.Turn;
+import com.here.android.mpa.routing.Route;
+import com.here.android.mpa.routing.Route.DeserializationCallback;
+import com.here.android.mpa.routing.Route.DeserializationResult;
+import com.here.android.mpa.routing.Route.SerializationCallback;
+import com.here.android.mpa.routing.Route.SerializationResult;
+import com.here.android.mpa.routing.Route.SerializerError;
+import com.here.android.mpa.routing.Route.TrafficPenaltyMode;
+import com.here.android.mpa.routing.RouteResult;
+import com.here.android.mpa.routing.RoutingError;
+import com.ktm.kmrc.services.navigation.NavigationRequest;
+import com.ktm.kmrc.services.navigation.TurnIcon;
+import com.ktm.navapp.App;
+import com.ktm.navapp.analytics.Analytics;
+import com.ktm.navapp.connectivity.endpoints.DashboardManager;
+import com.ktm.navapp.downloading.voice.VoiceManager;
+import com.ktm.navapp.guidance.GuidanceManager;
+import com.ktm.navapp.guidance.IconManager;
+import com.ktm.navapp.guidance.LengthFormatter;
+import com.ktm.navapp.logging.Log;
+import com.ktm.navapp.logging.LogExt;
+import com.ktm.navapp.logging.LogExt.Symbol;
+import com.ktm.navapp.routing.RoutingManager;
+import com.ktm.navapp.search.TripManager;
+import com.ktm.navapp.ui.mainscreen.MainScreen;
+import com.ktm.navapp.utilities.Events;
+import com.ktm.navapp.utilities.NavigationManagerProxy;
+import com.ktm.navapp.utilities.Storage;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.lang.ref.WeakReference;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.EnumSet;
+import java.util.Iterator;
+import java.util.List;
+
+public class NavAppService
+  extends Service
+{
+  public static final String GUIDANCE_CMD = "GUIDANCE_COMMAND";
+  protected static final int NOTIFICATION_ID = 5432;
+  public static final String OFFROAD_ARG = "OFFROAD";
+  public static final String SAVED_IS_GUIDANCE_CANCELLED = "isguidancecancelled";
+  public static final String SAVED_REACHED_DESTINATION = "reacheddestination";
+  protected static final String SAVED_ROUTE = "recentroute";
+  public static final String SERVICE_NAME = "NavAppService";
+  public static final String SIMULATE_ARG = "SIMULATE";
+  public static final int START_GUIDANCE = 1209;
+  public static final int STOP_GUIDANCE = 407;
+  protected static final String TAG = NavAppService.class.getSimpleName();
+  final DateFormat dateFormat = new SimpleDateFormat("HH:mm");
+  protected NavigationManager.AudioFeedbackListener mAudioFeedbackListener = new NavigationManager.AudioFeedbackListener()
+  {
+    public void onAudioEnd()
+    {
+      Log.d(NavAppService.TAG, "onAudioEnd()");
+      super.onAudioEnd();
+      unFocusAudio();
+    }
+    
+    public void onAudioStart()
+    {
+      Log.d(NavAppService.TAG, "onAudioStart()");
+      super.onAudioStart();
+      focusAudio();
+    }
+  };
+  protected AudioManager mAudioManager;
+  protected AudioManager.OnAudioFocusChangeListener mFocusMusicChangeListener = new AudioManager.OnAudioFocusChangeListener()
+  {
+    public void onAudioFocusChange(int paramAnonymousInt)
+    {
+      Log.d(NavAppService.TAG, "onAudioFocusChange(%d)", new Object[] { Integer.valueOf(paramAnonymousInt) });
+    }
+  };
+  protected boolean mGpsRestored = false;
+  protected final NavigationManager.GpsSignalListener mGpsSignalListener = new NavigationManager.GpsSignalListener()
+  {
+    public void onGpsLost()
+    {
+      Log.d(NavAppService.TAG, "onGpsLost()");
+      LogExt.writeGpsLostEvent();
+      super.onGpsLost();
+      NavAppService.sendToDashboard(new Runnable()
+      {
+        public void run()
+        {
+          DashboardManager.getInstance().navigationRequest().onGpsSignalLost();
+        }
+      });
+    }
+    
+    public void onGpsRestored()
+    {
+      Log.d(NavAppService.TAG, "onGpsRestored()");
+      mGpsRestored = true;
+      super.onGpsRestored();
+      NavAppService.sendToDashboard(new Runnable()
+      {
+        public void run()
+        {
+          DashboardManager.getInstance().navigationRequest().onGpsSignalAvailable();
+        }
+      });
+    }
+  };
+  protected int mInitialNotificationVolume;
+  protected final NavigationManager.NewInstructionEventListener mInstructionListener = new NavigationManager.NewInstructionEventListener()
+  {
+    public void onNewInstructionEvent()
+    {
+      Log.d(NavAppService.TAG, "onNewInstructionEvent()");
+      super.onNewInstructionEvent();
+      final Maneuver localManeuver = NavigationManagerProxy.getInstance().getNextManeuver();
+      if (localManeuver != null)
+      {
+        long l = NavigationManagerProxy.getInstance().getNextManeuverDistance();
+        Log.d(NavAppService.TAG, "onNewInstructionEvent() action=%s, turn=%s, icon=%s, distance=%d, road=%s, nextRoad=%s", new Object[] { localManeuver.getAction().name(), localManeuver.getTurn().name(), localManeuver.getIcon().name(), Long.valueOf(l), localManeuver.getRoadName(), localManeuver.getNextRoadName() });
+        if (localManeuver.getAction() == Maneuver.Action.END) {
+          mReachedDestination = true;
+        }
+        LogExt.writeInstructionEvent(l, localManeuver);
+        Analytics.getInstance().logManeuver(localManeuver);
+        final String[] arrayOfString = LengthFormatter.getFormattedExt(l);
+        String str = IconManager.getIconExit(localManeuver);
+        Object localObject = str;
+        if (str.length() > 0)
+        {
+          localObject = new StringBuilder();
+          ((StringBuilder)localObject).append(getString(2131558496));
+          ((StringBuilder)localObject).append(" ");
+          ((StringBuilder)localObject).append(str);
+          localObject = ((StringBuilder)localObject).toString();
+        }
+        NavAppService.sendToDashboard(new Runnable()
+        {
+          public void run()
+          {
+            NavigationRequest localNavigationRequest = DashboardManager.getInstance().navigationRequest();
+            TurnIcon localTurnIcon = IconManager.getTurnIconValue(localManeuver);
+            String str1;
+            if (localManeuver.getAction() == Maneuver.Action.STOPOVER) {
+              str1 = localManeuver.getRoadName();
+            } else {
+              str1 = localManeuver.getNextRoadName();
+            }
+            String str2 = val$exitInfo.toUpperCase();
+            String[] arrayOfString = arrayOfString;
+            localNavigationRequest.onNewGuidanceManeuver(localTurnIcon, str1, str2, arrayOfString[0], arrayOfString[1].toUpperCase());
+          }
+        });
+        updateDistance(NavigationEvent.EventType.INSTRUCTION_UPDATE, l);
+      }
+    }
+  };
+  protected boolean mIsOffroad = false;
+  protected boolean mIsSimulated = false;
+  protected final NavigationManager.ManeuverEventListener mManeuverEventListener = new NavigationManager.ManeuverEventListener()
+  {
+    public void onManeuverEvent()
+    {
+      Log.d(NavAppService.TAG, "onManeuverEvent()");
+      super.onManeuverEvent();
+      NavigationManagerProxy.getInstance().getNextManeuver();
+    }
+  };
+  protected final NavigationManager.NavigationManagerEventListener mNavigationManagerEventListener = new NavigationManager.NavigationManagerEventListener()
+  {
+    public void onCountryInfo(String paramAnonymousString1, String paramAnonymousString2)
+    {
+      Log.d(NavAppService.TAG, "onCountryInfo() current=%s, next=%s", new Object[] { paramAnonymousString1, paramAnonymousString2 });
+      super.onCountryInfo(paramAnonymousString1, paramAnonymousString2);
+    }
+    
+    public void onEnded(NavigationManager.NavigationMode paramAnonymousNavigationMode)
+    {
+      Log.d(NavAppService.TAG, "onEnded()");
+      super.onEnded(paramAnonymousNavigationMode);
+      boolean bool = ((Boolean)Storage.load("isguidancecancelled", Boolean.class, Boolean.valueOf(false))).booleanValue();
+      if ((mReachedDestination) && (!bool))
+      {
+        Storage.save("reacheddestination", Boolean.valueOf(true));
+        Events.postEvent(new NavigationEvent(NavigationEvent.EventType.REACHED_DESTINATION));
+      }
+      else
+      {
+        Events.postEvent(new NavigationEvent(NavigationEvent.EventType.GUIDANCE_ENDED));
+      }
+      Analytics.getInstance().logNavigationEnd();
+      paramAnonymousNavigationMode = NavAppService.this;
+      paramAnonymousNavigationMode.stopGuidanceCommand(NavAppService.ServiceHandler.access$000(mServiceHandler));
+    }
+    
+    public void onMapUpdateModeChanged(NavigationManager.MapUpdateMode paramAnonymousMapUpdateMode)
+    {
+      super.onMapUpdateModeChanged(paramAnonymousMapUpdateMode);
+      Log.d(NavAppService.TAG, "onMapUpdateModeChanged() %s", new Object[] { String.valueOf(paramAnonymousMapUpdateMode) });
+    }
+    
+    public void onNavigationModeChanged()
+    {
+      super.onNavigationModeChanged();
+      NavigationManager.NavigationMode localNavigationMode = NavigationManagerProxy.getInstance().getNavigationMode();
+      Log.d(NavAppService.TAG, "onNavigationModeChanged() %s", new Object[] { String.valueOf(localNavigationMode) });
+      if ((localNavigationMode == NavigationManager.NavigationMode.SIMULATION) || (localNavigationMode == NavigationManager.NavigationMode.NAVIGATION))
+      {
+        TripManager.onGuidanceStart();
+        Events.postEvent(new NavigationEvent(NavigationEvent.EventType.GUIDANCE_STARTED));
+      }
+    }
+    
+    public void onRunningStateChanged()
+    {
+      super.onRunningStateChanged();
+      Log.d(NavAppService.TAG, "onRunningStateChanged() %s", new Object[] { String.valueOf(NavigationManagerProxy.getInstance().getRunningState()) });
+    }
+    
+    public void onStopoverReached(int paramAnonymousInt)
+    {
+      Log.d(NavAppService.TAG, "onStopoverReached() %d", new Object[] { Integer.valueOf(paramAnonymousInt) });
+      super.onStopoverReached(paramAnonymousInt);
+      TripManager.onGuidanceWaypointReached(paramAnonymousInt);
+      Events.postEvent(new NavigationEvent(NavigationEvent.EventType.REACHED_STOPOVER, 0L, 0L, null, paramAnonymousInt));
+    }
+  };
+  protected final NavigationManager.PositionListener mPositionListener = new NavigationManager.PositionListener()
+  {
+    public void onPositionUpdated(GeoPosition paramAnonymousGeoPosition)
+    {
+      super.onPositionUpdated(paramAnonymousGeoPosition);
+      LogExt.writePosition(paramAnonymousGeoPosition);
+      Analytics.getInstance().setPosition(paramAnonymousGeoPosition);
+      if (mGpsRestored)
+      {
+        mGpsRestored = false;
+        LogExt.writeGpsRestoredEvent();
+      }
+      long l = NavigationManagerProxy.getInstance().getNextManeuverDistance();
+      updateDistance(NavigationEvent.EventType.POSITION_UPDATE, l);
+    }
+  };
+  protected boolean mReachedDestination;
+  protected final NavigationManager.RerouteListener mRerouteListener = new NavigationManager.RerouteListener()
+  {
+    public void onRerouteBegin()
+    {
+      Log.d(NavAppService.TAG, "onRerouteBegin()");
+      LogExt.writeEvent(LogExt.Symbol.PIN_YELLOW, "Reroute Begin", "");
+      super.onRerouteBegin();
+      Events.postEvent(new NavigationEvent(NavigationEvent.EventType.REROUTING));
+      NavAppService.sendToDashboard(new Runnable()
+      {
+        public void run()
+        {
+          DashboardManager.getInstance().navigationRequest().onRerouting(val$text);
+        }
+      });
+    }
+    
+    public void onRerouteEnd(RouteResult paramAnonymousRouteResult, RoutingError paramAnonymousRoutingError)
+    {
+      if ((paramAnonymousRoutingError != RoutingError.NONE) && (paramAnonymousRoutingError != RoutingError.VIOLATES_OPTIONS))
+      {
+        Log.d(NavAppService.TAG, "onRerouteFailed()");
+        LogExt.writeEvent(LogExt.Symbol.PIN_RED, "Reroute Failed", "");
+        super.onRerouteEnd(paramAnonymousRouteResult, paramAnonymousRoutingError);
+        return;
+      }
+      Log.d(NavAppService.TAG, "onRerouteEnd()");
+      LogExt.writeEvent(LogExt.Symbol.PIN_GREEN, "Reroute End", "");
+      paramAnonymousRouteResult.getViolatedOptions();
+      super.onRerouteEnd(paramAnonymousRouteResult, paramAnonymousRoutingError);
+      GuidanceManager.getInstance().setRoute(paramAnonymousRouteResult.getRoute());
+      LogExt.writeRoute(paramAnonymousRouteResult.getRoute(), true);
+    }
+  };
+  protected ServiceHandler mServiceHandler;
+  protected Looper mServiceLooper;
+  protected PowerManager.WakeLock mWakeLock;
+  
+  public NavAppService() {}
+  
+  protected static VoiceSkin getNoneVoiceSkin()
+  {
+    Object localObject = VoiceCatalog.getInstance().getLocalVoiceSkins().iterator();
+    while (((Iterator)localObject).hasNext())
+    {
+      VoiceSkin localVoiceSkin = (VoiceSkin)((Iterator)localObject).next();
+      if (localVoiceSkin.getLanguage().toLowerCase().contains("none")) {
+        return localVoiceSkin;
+      }
+    }
+    localObject = VoiceCatalog.getInstance().getLocalVoiceSkins();
+    if (((List)localObject).size() > 0) {
+      return (VoiceSkin)((List)localObject).get(0);
+    }
+    return null;
+  }
+  
+  public static boolean isRunning(Context paramContext)
+  {
+    paramContext = (ActivityManager)paramContext.getSystemService("activity");
+    if (paramContext != null)
+    {
+      paramContext = paramContext.getRunningServices(Integer.MAX_VALUE).iterator();
+      while (paramContext.hasNext())
+      {
+        ActivityManager.RunningServiceInfo localRunningServiceInfo = (ActivityManager.RunningServiceInfo)paramContext.next();
+        if (NavAppService.class.getName().equals(service.getClassName()))
+        {
+          Log.d(TAG, "isRunning(): true");
+          return true;
+        }
+      }
+    }
+    Log.d(TAG, "isRunning(): false");
+    return false;
+  }
+  
+  private void runAsForeground()
+  {
+    Log.d(TAG, "runAsForeground()");
+    initNotificationChannel(this);
+    Object localObject = new Intent(this, MainScreen.class);
+    ((Intent)localObject).addFlags(268435456);
+    localObject = PendingIntent.getActivity(this, 0, (Intent)localObject, 134217728);
+    startForeground(5432, new NotificationCompat.Builder(this, "navapp-guidance").setSmallIcon(2131165922).setContentTitle(getString(2131558437)).setContentIntent((PendingIntent)localObject).build());
+  }
+  
+  static void sendToDashboard(Runnable paramRunnable)
+  {
+    paramRunnable.run();
+  }
+  
+  protected static void turnOffSpeedWarnings()
+  {
+    NavigationManagerProxy.getInstance().setSpeedWarningEnabled(false);
+    NavigationManagerProxy.getInstance().setEnabledAudioEvents(EnumSet.of(NavigationManager.AudioEvent.MANEUVER, NavigationManager.AudioEvent.GPS, NavigationManager.AudioEvent.VIBRATION));
+  }
+  
+  /* Error */
+  protected void configAudioFocus()
+  {
+    // Byte code:
+    //   0: aload_0
+    //   1: monitorenter
+    //   2: aload_0
+    //   3: invokestatic 368	com/ktm/navapp/App:getContext	()Landroid/content/Context;
+    //   6: ldc_w 370
+    //   9: invokevirtual 224	android/content/Context:getSystemService	(Ljava/lang/String;)Ljava/lang/Object;
+    //   12: checkcast 372	android/media/AudioManager
+    //   15: putfield 374	com/ktm/navapp/services/NavAppService:mAudioManager	Landroid/media/AudioManager;
+    //   18: aload_0
+    //   19: getfield 374	com/ktm/navapp/services/NavAppService:mAudioManager	Landroid/media/AudioManager;
+    //   22: ifnull +23 -> 45
+    //   25: aload_0
+    //   26: aload_0
+    //   27: getfield 374	com/ktm/navapp/services/NavAppService:mAudioManager	Landroid/media/AudioManager;
+    //   30: iconst_5
+    //   31: invokevirtual 378	android/media/AudioManager:getStreamVolume	(I)I
+    //   34: putfield 380	com/ktm/navapp/services/NavAppService:mInitialNotificationVolume	I
+    //   37: goto +8 -> 45
+    //   40: astore_1
+    //   41: aload_0
+    //   42: monitorexit
+    //   43: aload_1
+    //   44: athrow
+    //   45: aload_0
+    //   46: monitorexit
+    //   47: return
+    //   48: astore_1
+    //   49: goto -4 -> 45
+    // Local variable table:
+    //   start	length	slot	name	signature
+    //   0	52	0	this	NavAppService
+    //   40	4	1	localObject	Object
+    //   48	1	1	localException	Exception
+    // Exception table:
+    //   from	to	target	type
+    //   2	37	40	finally
+    //   2	37	48	java/lang/Exception
+  }
+  
+  /* Error */
+  protected void focusAudio()
+  {
+    // Byte code:
+    //   0: aload_0
+    //   1: monitorenter
+    //   2: getstatic 117	com/ktm/navapp/services/NavAppService:TAG	Ljava/lang/String;
+    //   5: ldc_w 383
+    //   8: invokestatic 257	com/ktm/navapp/logging/Log:d	(Ljava/lang/String;Ljava/lang/String;)V
+    //   11: aload_0
+    //   12: getfield 374	com/ktm/navapp/services/NavAppService:mAudioManager	Landroid/media/AudioManager;
+    //   15: astore_1
+    //   16: aload_1
+    //   17: ifnonnull +6 -> 23
+    //   20: aload_0
+    //   21: monitorexit
+    //   22: return
+    //   23: aload_0
+    //   24: getfield 374	com/ktm/navapp/services/NavAppService:mAudioManager	Landroid/media/AudioManager;
+    //   27: iconst_5
+    //   28: iconst_0
+    //   29: iconst_0
+    //   30: invokevirtual 387	android/media/AudioManager:setStreamVolume	(III)V
+    //   33: aload_0
+    //   34: getfield 374	com/ktm/navapp/services/NavAppService:mAudioManager	Landroid/media/AudioManager;
+    //   37: aload_0
+    //   38: getfield 162	com/ktm/navapp/services/NavAppService:mFocusMusicChangeListener	Landroid/media/AudioManager$OnAudioFocusChangeListener;
+    //   41: invokestatic 331	com/ktm/navapp/utilities/NavigationManagerProxy:getInstance	()Lcom/here/android/mpa/guidance/NavigationManager;
+    //   44: invokevirtual 391	com/here/android/mpa/guidance/NavigationManager:getAudioPlayer	()Lcom/here/android/mpa/guidance/NavigationManager$AudioPlayer;
+    //   47: invokevirtual 396	com/here/android/mpa/guidance/NavigationManager$AudioPlayer:getStreamId	()I
+    //   50: iconst_3
+    //   51: invokevirtual 400	android/media/AudioManager:requestAudioFocus	(Landroid/media/AudioManager$OnAudioFocusChangeListener;II)I
+    //   54: pop
+    //   55: aload_0
+    //   56: monitorexit
+    //   57: return
+    //   58: astore_1
+    //   59: aload_0
+    //   60: monitorexit
+    //   61: aload_1
+    //   62: athrow
+    //   63: astore_1
+    //   64: goto -9 -> 55
+    // Local variable table:
+    //   start	length	slot	name	signature
+    //   0	67	0	this	NavAppService
+    //   15	2	1	localAudioManager	AudioManager
+    //   58	4	1	localObject	Object
+    //   63	1	1	localException	Exception
+    // Exception table:
+    //   from	to	target	type
+    //   2	16	58	finally
+    //   23	55	58	finally
+    //   23	55	63	java/lang/Exception
+  }
+  
+  public void initNotificationChannel(Context paramContext)
+  {
+    if (Build.VERSION.SDK_INT >= 26)
+    {
+      paramContext = (NotificationManager)paramContext.getSystemService("notification");
+      if (paramContext != null) {
+        paramContext.createNotificationChannel(new NotificationChannel("navapp-guidance", getString(2131558437), 2));
+      }
+    }
+  }
+  
+  public IBinder onBind(Intent paramIntent)
+  {
+    return null;
+  }
+  
+  public void onCreate()
+  {
+    Object localObject = new HandlerThread("NavAppService", 10);
+    ((HandlerThread)localObject).start();
+    mServiceLooper = ((HandlerThread)localObject).getLooper();
+    mServiceHandler = new ServiceHandler(mServiceLooper);
+    localObject = (PowerManager)getSystemService("power");
+    if (localObject != null) {
+      mWakeLock = ((PowerManager)localObject).newWakeLock(1, "myride:NavServiceWakeLock");
+    }
+  }
+  
+  public void onDestroy()
+  {
+    restoreNotificationVolume();
+    Log.d(TAG, "onDestroy: %s", new Object[] { "NavAppService" });
+  }
+  
+  public int onStartCommand(Intent paramIntent, int paramInt1, final int paramInt2)
+  {
+    Log.d(TAG, "service starting: %s (startId: %d)", new Object[] { "NavAppService", Integer.valueOf(paramInt2) });
+    mServiceHandler.obtainMessage();
+    if (paramIntent != null)
+    {
+      paramIntent = paramIntent.getExtras();
+      if (paramIntent != null)
+      {
+        start(paramIntent, paramInt2);
+        return 1;
+      }
+      stop(paramInt2);
+      return 1;
+    }
+    Log.d(TAG, "service REstarting: %s (startId: %d)", new Object[] { "NavAppService", Integer.valueOf(paramInt2) });
+    if (!MapEngine.isInitialized()) {
+      MapEngine.getInstance().init(new ApplicationContext(App.getContext()), new OnEngineInitListener()
+      {
+        public void onEngineInitializationCompleted(OnEngineInitListener.Error paramAnonymousError)
+        {
+          Log.d(NavAppService.TAG, "initializeEngine.onEngineInitializationCompleted(error: %s)", new Object[] { String.valueOf(paramAnonymousError) });
+          Object localObject2 = null;
+          byte[] arrayOfByte = null;
+          paramAnonymousError = arrayOfByte;
+          Object localObject1 = localObject2;
+          try
+          {
+            FileInputStream localFileInputStream = openFileInput("recentroute");
+            paramAnonymousError = arrayOfByte;
+            localObject1 = localObject2;
+            arrayOfByte = new byte[localFileInputStream.available()];
+            paramAnonymousError = arrayOfByte;
+            localObject1 = arrayOfByte;
+            localFileInputStream.read(arrayOfByte);
+            paramAnonymousError = arrayOfByte;
+          }
+          catch (IOException localIOException)
+          {
+            Log.e(NavAppService.TAG, localIOException.getMessage());
+          }
+          catch (FileNotFoundException paramAnonymousError)
+          {
+            Log.d(NavAppService.TAG, paramAnonymousError.getMessage());
+            paramAnonymousError = localIOException;
+          }
+          Route.deserializeAsync(paramAnonymousError, new Route.DeserializationCallback()
+          {
+            public void onDeserializationComplete(final Route.DeserializationResult paramAnonymous2DeserializationResult)
+            {
+              if (route == null)
+              {
+                Log.d(NavAppService.TAG, "Deserialized route is NULL !!!");
+                return;
+              }
+              Log.d(NavAppService.TAG, "Deserialized route is OK !!!");
+              Events.runOnMainThread(new Runnable()
+              {
+                public void run()
+                {
+                  RoutingManager.getInstance().setRoute(paramAnonymous2DeserializationResultroute);
+                  start(null, val$startId);
+                }
+              });
+            }
+          });
+        }
+      });
+    }
+    return 1;
+  }
+  
+  /* Error */
+  public void restoreNotificationVolume()
+  {
+    // Byte code:
+    //   0: aload_0
+    //   1: monitorenter
+    //   2: getstatic 117	com/ktm/navapp/services/NavAppService:TAG	Ljava/lang/String;
+    //   5: ldc_w 512
+    //   8: invokestatic 257	com/ktm/navapp/logging/Log:d	(Ljava/lang/String;Ljava/lang/String;)V
+    //   11: aload_0
+    //   12: getfield 374	com/ktm/navapp/services/NavAppService:mAudioManager	Landroid/media/AudioManager;
+    //   15: astore_1
+    //   16: aload_1
+    //   17: ifnull +16 -> 33
+    //   20: aload_0
+    //   21: getfield 374	com/ktm/navapp/services/NavAppService:mAudioManager	Landroid/media/AudioManager;
+    //   24: iconst_5
+    //   25: aload_0
+    //   26: getfield 380	com/ktm/navapp/services/NavAppService:mInitialNotificationVolume	I
+    //   29: iconst_0
+    //   30: invokevirtual 387	android/media/AudioManager:setStreamVolume	(III)V
+    //   33: aload_0
+    //   34: monitorexit
+    //   35: return
+    //   36: astore_1
+    //   37: aload_0
+    //   38: monitorexit
+    //   39: aload_1
+    //   40: athrow
+    //   41: astore_1
+    //   42: goto -9 -> 33
+    // Local variable table:
+    //   start	length	slot	name	signature
+    //   0	45	0	this	NavAppService
+    //   15	2	1	localAudioManager	AudioManager
+    //   36	4	1	localObject	Object
+    //   41	1	1	localException	Exception
+    // Exception table:
+    //   from	to	target	type
+    //   2	16	36	finally
+    //   20	33	36	finally
+    //   20	33	41	java/lang/Exception
+  }
+  
+  protected void start(Bundle paramBundle, int paramInt)
+  {
+    Message localMessage = mServiceHandler.obtainMessage();
+    if (paramBundle != null)
+    {
+      mIsSimulated = paramBundle.getBoolean("SIMULATE", false);
+      mIsOffroad = paramBundle.getBoolean("OFFROAD", false);
+      if (paramBundle.containsKey("GUIDANCE_COMMAND"))
+      {
+        i = paramBundle.getInt("GUIDANCE_COMMAND");
+        break label58;
+      }
+    }
+    int i = 1209;
+    label58:
+    arg1 = paramInt;
+    arg2 = i;
+    mServiceHandler.sendMessage(localMessage);
+    runAsForeground();
+    paramBundle = mWakeLock;
+    if (paramBundle != null) {
+      paramBundle.acquire();
+    }
+  }
+  
+  protected NavigationManager.Error startGuidance(MapRoute paramMapRoute, boolean paramBoolean1, boolean paramBoolean2)
+  {
+    Log.d(TAG, "configureGuidanceMap() isSimulated=%b, isOffroad=%b", new Object[] { Boolean.valueOf(paramBoolean1), Boolean.valueOf(paramBoolean2) });
+    VoiceSkin localVoiceSkin = VoiceManager.getInstance().getSelectedLanguage();
+    if (localVoiceSkin != null)
+    {
+      Log.d(TAG, "configureGuidanceMap(): selected voiceSkin: %s", new Object[] { localVoiceSkin.getLanguage() });
+      NavigationManagerProxy.getInstance().getVoiceGuidanceOptions().setVoiceSkin(localVoiceSkin);
+      configAudioFocus();
+      NavigationManagerProxy.getInstance().addAudioFeedbackListener(new WeakReference(mAudioFeedbackListener));
+    }
+    else
+    {
+      Log.d(TAG, "configureGuidanceMap(): selected voiceSkin: null");
+      turnOffVoiceSkin();
+    }
+    NavigationManagerProxy.getInstance().addGpsSignalListener(new WeakReference(mGpsSignalListener));
+    NavigationManagerProxy.getInstance().addPositionListener(new WeakReference(mPositionListener));
+    NavigationManagerProxy.getInstance().addNavigationManagerEventListener(new WeakReference(mNavigationManagerEventListener));
+    if (!paramBoolean2)
+    {
+      NavigationManagerProxy.getInstance().addNewInstructionEventListener(new WeakReference(mInstructionListener));
+      NavigationManagerProxy.getInstance().addManeuverEventListener(new WeakReference(mManeuverEventListener));
+      NavigationManagerProxy.getInstance().addRerouteListener(new WeakReference(mRerouteListener));
+      LogExt.writeRoute(paramMapRoute.getRoute(), false);
+      LogExt.writeInstructionEvent(0L, null);
+      Analytics.getInstance().logNavigationStart();
+    }
+    if (paramBoolean2) {
+      return NavigationManagerProxy.getInstance().startTracking();
+    }
+    if (paramBoolean1) {
+      return NavigationManagerProxy.getInstance().simulate(paramMapRoute.getRoute(), 30L);
+    }
+    return NavigationManagerProxy.getInstance().startNavigation(paramMapRoute.getRoute());
+  }
+  
+  protected void startGuidanceCommand(int paramInt)
+  {
+    Log.i(TAG, "startGuidanceCommand()");
+    ServiceHandler.access$002(mServiceHandler, paramInt);
+    Object localObject = RoutingManager.getInstance().getSelectedRoute();
+    if ((localObject == null) || (((MapRoute)localObject).getRoute() == null))
+    {
+      Log.e(TAG, "No valid route provided. Stopping the service!");
+      stop();
+    }
+    if (localObject != null) {
+      Route.serializeAsync(((MapRoute)localObject).getRoute(), new Route.SerializationCallback()
+      {
+        public void onSerializationComplete(Route.SerializationResult paramAnonymousSerializationResult)
+        {
+          if (error == Route.SerializerError.NONE) {
+            try
+            {
+              openFileOutput("recentroute", 0).write(data);
+              return;
+            }
+            catch (IOException paramAnonymousSerializationResult)
+            {
+              Log.e(NavAppService.TAG, paramAnonymousSerializationResult.getMessage());
+              return;
+            }
+            catch (FileNotFoundException paramAnonymousSerializationResult)
+            {
+              Log.d(NavAppService.TAG, paramAnonymousSerializationResult.getMessage());
+            }
+          }
+        }
+      });
+    }
+    localObject = startGuidance((MapRoute)localObject, mIsSimulated, mIsOffroad);
+    Log.i(TAG, "configureGuidanceMap() result: %s", new Object[] { ((NavigationManager.Error)localObject).name() });
+    if (localObject != NavigationManager.Error.NONE)
+    {
+      localObject = TAG;
+      StringBuilder localStringBuilder = new StringBuilder();
+      localStringBuilder.append(NavigationManager.class.getSimpleName());
+      localStringBuilder.append(" error!\n Stopping the service!");
+      Log.e((String)localObject, localStringBuilder.toString());
+      stop();
+    }
+    sendToDashboard(new Runnable()
+    {
+      public void run()
+      {
+        DashboardManager.getInstance().navigationRequest().onGuidanceStarted();
+      }
+    });
+  }
+  
+  protected void stop()
+  {
+    Log.d(TAG, "Service: %s stopped", new Object[] { "NavAppService" });
+    stop(mServiceHandler.mLastStartedId);
+  }
+  
+  protected void stop(int paramInt)
+  {
+    stopSelf(paramInt);
+    PowerManager.WakeLock localWakeLock = mWakeLock;
+    if (localWakeLock != null) {
+      localWakeLock.release();
+    }
+  }
+  
+  protected void stopGuidanceCommand(int paramInt)
+  {
+    stopGuidanceCommand(paramInt, true);
+  }
+  
+  protected void stopGuidanceCommand(int paramInt, boolean paramBoolean)
+  {
+    Log.i(TAG, "stopGuidanceCommand()");
+    if (paramInt < 0) {
+      return;
+    }
+    if (NavigationManagerProxy.getInstance().getRunningState() != NavigationManager.NavigationState.IDLE) {
+      NavigationManagerProxy.getInstance().stop();
+    }
+    sendToDashboard(new Runnable()
+    {
+      public void run()
+      {
+        DashboardManager.getInstance().navigationRequest().onGuidanceFinished();
+      }
+    });
+    if (paramBoolean) {
+      stop();
+    }
+    ServiceHandler.access$002(mServiceHandler, -1);
+  }
+  
+  protected void turnOffVoiceSkin()
+  {
+    VoiceSkin localVoiceSkin = getNoneVoiceSkin();
+    if (localVoiceSkin != null)
+    {
+      NavigationManagerProxy.getInstance().getVoiceGuidanceOptions().setVoiceSkin(localVoiceSkin);
+      NavigationManagerProxy.getInstance().removeAudioFeedbackListener(mAudioFeedbackListener);
+    }
+  }
+  
+  /* Error */
+  protected void unFocusAudio()
+  {
+    // Byte code:
+    //   0: aload_0
+    //   1: monitorenter
+    //   2: getstatic 117	com/ktm/navapp/services/NavAppService:TAG	Ljava/lang/String;
+    //   5: ldc_w 748
+    //   8: invokestatic 257	com/ktm/navapp/logging/Log:d	(Ljava/lang/String;Ljava/lang/String;)V
+    //   11: aload_0
+    //   12: getfield 374	com/ktm/navapp/services/NavAppService:mAudioManager	Landroid/media/AudioManager;
+    //   15: astore_1
+    //   16: aload_1
+    //   17: ifnonnull +6 -> 23
+    //   20: aload_0
+    //   21: monitorexit
+    //   22: return
+    //   23: aload_0
+    //   24: getfield 374	com/ktm/navapp/services/NavAppService:mAudioManager	Landroid/media/AudioManager;
+    //   27: iconst_5
+    //   28: aload_0
+    //   29: getfield 380	com/ktm/navapp/services/NavAppService:mInitialNotificationVolume	I
+    //   32: iconst_0
+    //   33: invokevirtual 387	android/media/AudioManager:setStreamVolume	(III)V
+    //   36: aload_0
+    //   37: getfield 374	com/ktm/navapp/services/NavAppService:mAudioManager	Landroid/media/AudioManager;
+    //   40: aload_0
+    //   41: getfield 162	com/ktm/navapp/services/NavAppService:mFocusMusicChangeListener	Landroid/media/AudioManager$OnAudioFocusChangeListener;
+    //   44: invokevirtual 752	android/media/AudioManager:abandonAudioFocus	(Landroid/media/AudioManager$OnAudioFocusChangeListener;)I
+    //   47: pop
+    //   48: aload_0
+    //   49: monitorexit
+    //   50: return
+    //   51: astore_1
+    //   52: aload_0
+    //   53: monitorexit
+    //   54: aload_1
+    //   55: athrow
+    //   56: astore_1
+    //   57: goto -9 -> 48
+    // Local variable table:
+    //   start	length	slot	name	signature
+    //   0	60	0	this	NavAppService
+    //   15	2	1	localAudioManager	AudioManager
+    //   51	4	1	localObject	Object
+    //   56	1	1	localException	Exception
+    // Exception table:
+    //   from	to	target	type
+    //   2	16	51	finally
+    //   23	48	51	finally
+    //   23	48	56	java/lang/Exception
+  }
+  
+  protected void updateDistance(NavigationEvent.EventType paramEventType, long paramLong)
+  {
+    final long l = NavigationManagerProxy.getInstance().getDestinationDistance();
+    if ((paramLong < 2147483647L) && (l >= 0L))
+    {
+      Date localDate = NavigationManagerProxy.getInstance().getEta(true, Route.TrafficPenaltyMode.DISABLED);
+      Log.v(TAG, "updateDistance() distMan=%d, distDest=%d", new Object[] { Long.valueOf(paramLong), Long.valueOf(l) });
+      sendToDashboard(new Runnable()
+      {
+        public void run()
+        {
+          NavigationRequest localNavigationRequest = DashboardManager.getInstance().navigationRequest();
+          String[] arrayOfString = val$formatted;
+          localNavigationRequest.onNewLocation(arrayOfString[0], arrayOfString[1].toUpperCase(), LengthFormatter.getFormatted(l).toUpperCase(), dateFormat.format(val$etaDest));
+        }
+      });
+      Events.postEvent(new NavigationEvent(paramEventType, paramLong, l, localDate, 0));
+    }
+  }
+  
+  protected final class ServiceHandler
+    extends Handler
+  {
+    private int mLastStartedId = -1;
+    
+    public ServiceHandler(Looper paramLooper)
+    {
+      super();
+    }
+    
+    public void handleMessage(Message paramMessage)
+    {
+      int i = arg2;
+      if (i == 407)
+      {
+        stopGuidanceCommand(mLastStartedId);
+        return;
+      }
+      if (i == 1209)
+      {
+        if (NavigationManagerProxy.getInstance().getRunningState() != NavigationManager.NavigationState.IDLE) {
+          stopGuidanceCommand(mLastStartedId, false);
+        }
+        startGuidanceCommand(arg1);
+      }
+    }
+  }
+}

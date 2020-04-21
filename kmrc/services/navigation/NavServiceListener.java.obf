@@ -1,0 +1,12 @@
+package com.ktm.kmrc.services.navigation;
+
+import com.ktm.kmrc.io.KSocket;
+
+public abstract interface NavServiceListener
+{
+  public abstract void onServiceMsg(KSocket paramKSocket, String paramString);
+  
+  public abstract void onServiceOffline(KSocket paramKSocket);
+  
+  public abstract void onServiceOnline(KSocket paramKSocket);
+}

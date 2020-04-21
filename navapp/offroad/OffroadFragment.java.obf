@@ -1,0 +1,282 @@
+package com.ktm.navapp.offroad;
+
+import android.animation.ValueAnimator;
+import android.animation.ValueAnimator.AnimatorUpdateListener;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+import com.here.android.mpa.common.GeoPosition;
+import com.ktm.navapp.guidance.GuidanceManager;
+import com.ktm.navapp.guidance.LengthFormatter;
+import com.ktm.navapp.logging.Log;
+import com.ktm.navapp.managers.MapManager;
+import com.ktm.navapp.search.TripManager;
+import com.ktm.navapp.ui.base.NavAppBaseFragment;
+import com.ktm.navapp.ui.mainscreen.ExtendedLogoPosition;
+import com.ktm.navapp.ui.mainscreen.MainScreen;
+import com.ktm.navapp.ui.mainscreen.OnBackPressedHandler;
+import com.ktm.navapp.utilities.Events;
+import com.ktm.navapp.utilities.Storage;
+import com.squareup.otto.Subscribe;
+
+public class OffroadFragment
+  extends NavAppBaseFragment
+  implements OnBackPressedHandler
+{
+  static final int COMPASS_ANIMATION_MS = 400;
+  static final String TAG = OffroadFragment.class.getSimpleName();
+  @BindView(2131231102)
+  ImageButton mCancelButton;
+  @BindView(2131231103)
+  ImageView mCompassDisk;
+  @BindView(2131231104)
+  TextView mCompassDistance;
+  @BindView(2131231105)
+  TextView mCompassHeading;
+  @BindView(2131231106)
+  ImageView mCompassNeedle;
+  float mCurrentDiskRotation = 0.0F;
+  float mCurrentNeedleRotation = 0.0F;
+  @BindView(2131231107)
+  Button mDestReached;
+  final ValueAnimator mDiskAnimator = new ValueAnimator();
+  @BindView(2131231109)
+  TextView mFinishDescription;
+  @BindView(2131231110)
+  TextView mFinishHeader;
+  @BindView(2131231112)
+  View mFinishScreen;
+  @BindView(2131231113)
+  LinearLayout mGuidanceOverlay;
+  @BindView(2131231114)
+  LinearLayout mMapControls;
+  final ValueAnimator mNeedleAnimator = new ValueAnimator();
+  boolean mTextVisible = false;
+  final Runnable mUpdateUiTask = new Runnable()
+  {
+    public void run()
+    {
+      updateUi();
+      Events.postDelayed(this, 100L);
+    }
+  };
+  
+  public OffroadFragment() {}
+  
+  public static OffroadFragment newInstance()
+  {
+    Log.d(TAG, "newInstance()");
+    OffroadFragment localOffroadFragment = new OffroadFragment();
+    localOffroadFragment.setArguments(new Bundle());
+    return localOffroadFragment;
+  }
+  
+  private static void setText(TextView paramTextView, String paramString)
+  {
+    if (!paramTextView.getText().toString().equals(paramString)) {
+      paramTextView.setText(paramString);
+    }
+  }
+  
+  private static void setVisibility(View paramView, int paramInt)
+  {
+    if (paramView.getVisibility() != paramInt) {
+      paramView.setVisibility(paramInt);
+    }
+  }
+  
+  public void onActivityCreated(Bundle paramBundle)
+  {
+    super.onActivityCreated(paramBundle);
+    setVisibility(mCompassDistance, 4);
+    setVisibility(mCompassHeading, 4);
+    setVisibility(mDestReached, 4);
+    paramBundle = mCompassDisk;
+    mCurrentDiskRotation = 0.0F;
+    paramBundle.setRotation(0.0F);
+    paramBundle = mCompassNeedle;
+    mCurrentNeedleRotation = 0.0F;
+    paramBundle.setRotation(0.0F);
+    mTextVisible = false;
+    MapManager.getInstance().clearMarkers();
+    MapManager.getInstance().clearRoutes();
+    OffroadGuidance.setDestination(TripManager.getDestination());
+    GuidanceManager.getInstance().startGuidance(false, true);
+    Events.register(this);
+    Events.postDelayed(mUpdateUiTask, 100L);
+  }
+  
+  public boolean onBackPressed()
+  {
+    Log.d(TAG, "onBackPressed()");
+    if (!GuidanceManager.isGuidanceView())
+    {
+      switchGuidanceView(true);
+      return true;
+    }
+    onCancelButton();
+    return true;
+  }
+  
+  @OnClick({2131231102})
+  public void onCancelButton()
+  {
+    mFinishHeader.setText(2131558448);
+    mFinishDescription.setVisibility(0);
+    mFinishScreen.setVisibility(0);
+  }
+  
+  @OnClick({2131231034})
+  void onCenterButton()
+  {
+    switchGuidanceView(true);
+  }
+  
+  public View onCreateView(LayoutInflater paramLayoutInflater, ViewGroup paramViewGroup, Bundle paramBundle)
+  {
+    Log.d(TAG, "onCreateView()");
+    paramLayoutInflater = paramLayoutInflater.inflate(2131427399, paramViewGroup, false);
+    ButterKnife.bind(this, paramLayoutInflater);
+    ((MainScreen)getActivity()).configCopyrightIconPosition(ExtendedLogoPosition.BOTTOM_RIGHT);
+    return paramLayoutInflater;
+  }
+  
+  @OnClick({2131231107})
+  public void onDestinationReachedClicked()
+  {
+    mFinishHeader.setText(2131558712);
+    mFinishDescription.setVisibility(8);
+    mFinishScreen.setVisibility(0);
+  }
+  
+  public void onDestroy()
+  {
+    Events.cancel(mUpdateUiTask);
+    Events.unregister(this);
+    mDiskAnimator.cancel();
+    mNeedleAnimator.cancel();
+    super.onDestroy();
+  }
+  
+  @OnClick({2131231108})
+  public void onFinishBackClicked()
+  {
+    mFinishScreen.setVisibility(4);
+  }
+  
+  @OnClick({2131231111})
+  public void onFinishOkClicked()
+  {
+    Storage.save("isguidancecancelled", Boolean.valueOf(true));
+    GuidanceManager.getInstance().cancelGuidance();
+    ((MainScreen)getActivity()).onGuidanceFinished();
+  }
+  
+  public void onMapTouched()
+  {
+    switchGuidanceView(false);
+  }
+  
+  @Subscribe
+  public void onPositionChanged(GeoPosition paramGeoPosition)
+  {
+    OffroadGuidance.updatePosition(paramGeoPosition);
+  }
+  
+  @OnClick({2131231038})
+  void onZoomIn()
+  {
+    MapManager.getInstance().zoomIn(false, false);
+  }
+  
+  @OnClick({2131231037})
+  void onZoomOut()
+  {
+    MapManager.getInstance().zoomOut(false);
+  }
+  
+  void switchGuidanceView(boolean paramBoolean)
+  {
+    GuidanceManager.setGuidanceView(paramBoolean, true);
+    if (paramBoolean)
+    {
+      mMapControls.setVisibility(4);
+      mCancelButton.setVisibility(0);
+      mGuidanceOverlay.setVisibility(0);
+      return;
+    }
+    mGuidanceOverlay.setVisibility(4);
+    mCancelButton.setVisibility(8);
+    mMapControls.setVisibility(0);
+  }
+  
+  public void updateUi()
+  {
+    if (!OffroadGuidance.update()) {
+      return;
+    }
+    MapManager.getInstance().setCenterGuidanceOffroad(OffroadGuidance.getCurrentPosition(), (float)OffroadGuidance.getCurrentHeading());
+    final float f2 = (float)OffroadGuidance.getHeadingNorthRelative();
+    float f1 = (float)OffroadGuidance.getHeadingDestRelative();
+    long l = OffroadGuidance.getDistanceDest();
+    Button localButton = mDestReached;
+    int i;
+    if (OffroadGuidance.reachedDestination()) {
+      i = 0;
+    } else {
+      i = 4;
+    }
+    setVisibility(localButton, i);
+    setText(mCompassDistance, LengthFormatter.getFormatted(l));
+    setText(mCompassHeading, OffroadGuidance.getCompassPoint(OffroadGuidance.getHeadingDest()));
+    if (f2 != mCurrentDiskRotation)
+    {
+      mCurrentDiskRotation = f2;
+      mDiskAnimator.cancel();
+      final float f3 = mCompassDisk.getRotation();
+      mDiskAnimator.setFloatValues(new float[] { 0.0F, (float)OffroadGuidance.headDeltaSigned(f3, f2) });
+      mDiskAnimator.setDuration(400L);
+      mDiskAnimator.removeAllUpdateListeners();
+      mDiskAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener()
+      {
+        public void onAnimationUpdate(ValueAnimator paramAnonymousValueAnimator)
+        {
+          mCompassDisk.setRotation(f3 + ((Float)paramAnonymousValueAnimator.getAnimatedValue()).floatValue());
+        }
+      });
+      mDiskAnimator.start();
+    }
+    if (f1 != mCurrentNeedleRotation)
+    {
+      mCurrentNeedleRotation = f1;
+      mNeedleAnimator.cancel();
+      f2 = mCompassNeedle.getRotation();
+      mNeedleAnimator.setFloatValues(new float[] { 0.0F, (float)OffroadGuidance.headDeltaSigned(f2, f1) });
+      mNeedleAnimator.setDuration(400L);
+      mNeedleAnimator.removeAllUpdateListeners();
+      mNeedleAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener()
+      {
+        public void onAnimationUpdate(ValueAnimator paramAnonymousValueAnimator)
+        {
+          mCompassNeedle.setRotation(f2 + ((Float)paramAnonymousValueAnimator.getAnimatedValue()).floatValue());
+        }
+      });
+      mNeedleAnimator.start();
+    }
+    if (!mTextVisible)
+    {
+      mTextVisible = true;
+      mCompassDistance.setVisibility(0);
+      mCompassHeading.setVisibility(0);
+    }
+  }
+}

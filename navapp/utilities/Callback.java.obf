@@ -1,0 +1,6 @@
+package com.ktm.navapp.utilities;
+
+public abstract interface Callback<T>
+{
+  public abstract void onResult(T paramT);
+}

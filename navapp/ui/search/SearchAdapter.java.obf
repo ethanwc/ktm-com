@@ -1,0 +1,100 @@
+package com.ktm.navapp.ui.search;
+
+import android.content.Context;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.TextView;
+import com.ktm.navapp.logging.Log;
+import com.ktm.navapp.search.PlacesApi;
+import com.ktm.navapp.search.SearchHistory;
+import com.ktm.navapp.search.Waypoint;
+import com.ktm.navapp.utilities.Callback;
+import com.ktm.navapp.utilities.Events;
+import com.ktm.navapp.utilities.Utilities;
+import java.util.List;
+import java.util.regex.Pattern;
+
+public class SearchAdapter
+  extends ArrayAdapter<Waypoint>
+{
+  private static final String TAG = SearchAdapter.class.getSimpleName();
+  private Pattern mHighlight;
+  private final LayoutInflater mInflater;
+  private final double mLatitude;
+  private final double mLongitude;
+  private String mText;
+  
+  public SearchAdapter(Context paramContext, double paramDouble1, double paramDouble2)
+  {
+    super(paramContext, -1);
+    mLatitude = paramDouble1;
+    mLongitude = paramDouble2;
+    mInflater = LayoutInflater.from(paramContext);
+  }
+  
+  public View getView(int paramInt, View paramView, ViewGroup paramViewGroup)
+  {
+    if (paramView == null) {
+      paramView = mInflater.inflate(2131427458, paramViewGroup, false);
+    }
+    paramViewGroup = (TextView)paramView.findViewById(2131231277);
+    TextView localTextView = (TextView)paramView.findViewById(2131231278);
+    Waypoint localWaypoint = (Waypoint)getItem(paramInt);
+    if (localWaypoint != null)
+    {
+      paramViewGroup.setText(Utilities.replaceStyleWithFont(localWaypoint.getTitleHighlight(mHighlight), 1, "fonts/TradeGothicLTStd-BdCn20.otf"));
+      localTextView.setText(localWaypoint.getAddressSingleLine());
+      return paramView;
+    }
+    paramViewGroup.setText("");
+    localTextView.setText("");
+    return paramView;
+  }
+  
+  public void invalidateHistory()
+  {
+    Log.d(TAG, "invalidateHistory()");
+    String str = mText;
+    if ((str == null) || (str.isEmpty()))
+    {
+      clear();
+      addAll(SearchHistory.getHistory());
+      notifyDataSetChanged();
+    }
+  }
+  
+  public void setSearchText(String paramString)
+  {
+    Log.d(TAG, "setSearchText(%s)", new Object[] { paramString });
+    mText = paramString;
+    mHighlight = Waypoint.compileHighlight(paramString);
+    if ((paramString != null) && (!paramString.isEmpty()))
+    {
+      PlacesApi.search(paramString, mLatitude, mLongitude, new Callback()
+      {
+        public void onResult(List<Waypoint> paramAnonymousList)
+        {
+          if (paramAnonymousList != null)
+          {
+            clear();
+            addAll(paramAnonymousList);
+            notifyDataSetChanged();
+          }
+        }
+      });
+      return;
+    }
+    PlacesApi.cancelSearch();
+    Events.postOnMainThread(new Runnable()
+    {
+      public void run()
+      {
+        clear();
+        addAll(SearchHistory.getHistory());
+        notifyDataSetChanged();
+      }
+    });
+  }
+}

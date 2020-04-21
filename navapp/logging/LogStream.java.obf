@@ -1,0 +1,30 @@
+package com.ktm.navapp.logging;
+
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
+
+public class LogStream
+  extends OutputStream
+{
+  public static final PrintStream err = new PrintStream(new LogStream("System.err"));
+  public static final PrintStream out = new PrintStream(new LogStream("System.out"));
+  private final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+  private final String tag;
+  
+  private LogStream(String paramString)
+  {
+    tag = paramString;
+  }
+  
+  public void write(int paramInt)
+  {
+    if ((char)paramInt == '\n')
+    {
+      Log.i(tag, new String(baos.toByteArray()));
+      baos.reset();
+      return;
+    }
+    baos.write(paramInt);
+  }
+}

@@ -1,0 +1,41 @@
+package com.ktm.kmrc.services.navigation.dump;
+
+import com.ktm.kmrc.services.navigation.GpsIcon;
+import com.ktm.kmrc.services.navigation.Visibility;
+
+public class GpsIconDump
+{
+  public GpsIcon Image;
+  public Visibility Visibility;
+  
+  public GpsIconDump() {}
+  
+  public boolean equals(Object paramObject)
+  {
+    boolean bool2 = false;
+    if (paramObject == null) {
+      return false;
+    }
+    if (paramObject == this) {
+      return true;
+    }
+    if (!(paramObject instanceof GpsIconDump)) {
+      return false;
+    }
+    paramObject = (GpsIconDump)paramObject;
+    boolean bool1 = bool2;
+    if (Image == Image)
+    {
+      bool1 = bool2;
+      if (Visibility == Visibility) {
+        bool1 = true;
+      }
+    }
+    return bool1;
+  }
+  
+  public boolean hasValue()
+  {
+    return (Image != null) || (Visibility != null);
+  }
+}

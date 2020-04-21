@@ -1,0 +1,57 @@
+package com.ktm.navapp.ui.onboarding;
+
+import android.view.View;
+import android.view.Window;
+import butterknife.Unbinder;
+import butterknife.internal.DebouncingOnClickListener;
+import butterknife.internal.Utils;
+
+public class EnablePairingOnBoard_ViewBinding
+  implements Unbinder
+{
+  private EnablePairingOnBoard target;
+  private View view7f0801f3;
+  private View view7f0801f4;
+  
+  public EnablePairingOnBoard_ViewBinding(EnablePairingOnBoard paramEnablePairingOnBoard)
+  {
+    this(paramEnablePairingOnBoard, paramEnablePairingOnBoard.getWindow().getDecorView());
+  }
+  
+  public EnablePairingOnBoard_ViewBinding(final EnablePairingOnBoard paramEnablePairingOnBoard, View paramView)
+  {
+    target = paramEnablePairingOnBoard;
+    View localView = Utils.findRequiredView(paramView, 2131231219, "method 'onSkipButtonClick'");
+    view7f0801f3 = localView;
+    localView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramEnablePairingOnBoard.onSkipButtonClick();
+      }
+    });
+    paramView = Utils.findRequiredView(paramView, 2131231220, "method 'onSkipPairingTextClick'");
+    view7f0801f4 = paramView;
+    paramView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramEnablePairingOnBoard.onSkipPairingTextClick();
+      }
+    });
+  }
+  
+  public void unbind()
+  {
+    if (target != null)
+    {
+      target = null;
+      view7f0801f3.setOnClickListener(null);
+      view7f0801f3 = null;
+      view7f0801f4.setOnClickListener(null);
+      view7f0801f4 = null;
+      return;
+    }
+    throw new IllegalStateException("Bindings already cleared.");
+  }
+}

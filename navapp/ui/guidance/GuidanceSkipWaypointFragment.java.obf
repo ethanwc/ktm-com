@@ -1,0 +1,226 @@
+package com.ktm.navapp.ui.guidance;
+
+import android.content.Context;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+import com.here.android.mpa.common.GeoPosition;
+import com.here.android.mpa.guidance.NavigationManager;
+import com.here.android.mpa.guidance.NavigationManager.Error;
+import com.here.android.mpa.mapping.MapRoute;
+import com.ktm.navapp.App;
+import com.ktm.navapp.guidance.GuidanceManager;
+import com.ktm.navapp.logging.Log;
+import com.ktm.navapp.managers.MapManager;
+import com.ktm.navapp.routing.RouteResult;
+import com.ktm.navapp.routing.RoutingCallback;
+import com.ktm.navapp.routing.RoutingManager;
+import com.ktm.navapp.search.Trip;
+import com.ktm.navapp.search.TripManager;
+import com.ktm.navapp.search.Waypoint;
+import com.ktm.navapp.services.NavigationEvent;
+import com.ktm.navapp.services.NavigationEvent.EventType;
+import com.ktm.navapp.ui.base.NavAppBaseFragment;
+import com.ktm.navapp.ui.mainscreen.OnBackPressedHandler;
+import com.ktm.navapp.utilities.Events;
+import com.ktm.navapp.utilities.NavigationManagerProxy;
+import java.util.ArrayList;
+import java.util.List;
+
+public class GuidanceSkipWaypointFragment
+  extends NavAppBaseFragment
+  implements OnBackPressedHandler
+{
+  static final String TAG = GuidanceSkipWaypointFragment.class.getSimpleName();
+  private boolean mIsResumed = false;
+  private boolean mPopAfterPause = false;
+  private Trip mTrip = null;
+  @BindView(2131230945)
+  protected TextView mTvDescription;
+  @BindView(2131230942)
+  protected TextView mTvFindingRouteWpName;
+  @BindView(2131230937)
+  protected View mVwFailedLayout;
+  @BindView(2131230939)
+  protected View mVwFindingLayout;
+  @BindView(2131230943)
+  protected View mVwSkipLayout;
+  
+  public GuidanceSkipWaypointFragment() {}
+  
+  private void showBusy(boolean paramBoolean)
+  {
+    if (getActivity() != null)
+    {
+      View localView = mVwFailedLayout;
+      int j = 4;
+      localView.setVisibility(4);
+      localView = mVwFindingLayout;
+      int i;
+      if (paramBoolean) {
+        i = 0;
+      } else {
+        i = 4;
+      }
+      localView.setVisibility(i);
+      localView = mVwSkipLayout;
+      if (paramBoolean) {
+        i = j;
+      } else {
+        i = 0;
+      }
+      localView.setVisibility(i);
+    }
+  }
+  
+  private void showFailed()
+  {
+    if (getActivity() != null)
+    {
+      mVwFailedLayout.setVisibility(0);
+      mVwFindingLayout.setVisibility(4);
+      mVwSkipLayout.setVisibility(4);
+    }
+  }
+  
+  void calculateNewRoute(final Trip paramTrip)
+  {
+    GeoPosition localGeoPosition = MapManager.getInstance().getCurrentPosition();
+    if ((localGeoPosition != null) && (localGeoPosition.isValid()))
+    {
+      mTvFindingRouteWpName.setText(((Waypoint)paramTrip.getWaypoints().get(1)).getTitle());
+      showBusy(true);
+      RoutingManager.getInstance().loadRoute(localGeoPosition.getCoordinate(), paramTrip, new RoutingCallback()
+      {
+        public void onProgress(int paramAnonymousInt) {}
+        
+        public void onResult(RouteResult paramAnonymousRouteResult, boolean paramAnonymousBoolean)
+        {
+          if (getActivity() != null)
+          {
+            if (paramAnonymousRouteResult == RouteResult.CANCELLED) {
+              return;
+            }
+            if (paramAnonymousRouteResult != RouteResult.SUCCESS)
+            {
+              Log.w(GuidanceSkipWaypointFragment.TAG, "calculateNewRoute() ROUTING FAILED: %s", new Object[] { String.valueOf(paramAnonymousRouteResult) });
+              GuidanceSkipWaypointFragment.this.showFailed();
+              return;
+            }
+            paramTriplength = RoutingManager.getInstance().getDistanceMeters();
+            paramAnonymousRouteResult = RoutingManager.getInstance().getSelectedRoute().getRoute();
+            NavigationManagerProxy.getInstance().pause();
+            NavigationManager.Error localError = NavigationManagerProxy.getInstance().setRoute(paramAnonymousRouteResult);
+            if (localError != NavigationManager.Error.NONE)
+            {
+              Log.w(GuidanceSkipWaypointFragment.TAG, "calculateNewRoute() SET ROUTE FAILED: %s", new Object[] { String.valueOf(localError) });
+              GuidanceSkipWaypointFragment.this.showFailed();
+              NavigationManagerProxy.getInstance().resume();
+              return;
+            }
+            TripManager.setTrip(paramTrip);
+            GuidanceManager.getInstance().setRoute(paramAnonymousRouteResult);
+            TripManager.onGuidanceStart();
+            Events.postEvent(new NavigationEvent(NavigationEvent.EventType.GUIDANCE_STARTED));
+            NavigationManagerProxy.getInstance().resume();
+            if (mIsResumed)
+            {
+              getActivity().getSupportFragmentManager().popBackStack();
+              return;
+            }
+            GuidanceSkipWaypointFragment.access$202(GuidanceSkipWaypointFragment.this, true);
+          }
+        }
+      });
+      return;
+    }
+    Log.w(TAG, "calculateNewRoute() NO VALID POSITION");
+    showFailed();
+  }
+  
+  public boolean onBackPressed()
+  {
+    onSkipCancelOrFailed();
+    return true;
+  }
+  
+  public View onCreateView(LayoutInflater paramLayoutInflater, ViewGroup paramViewGroup, Bundle paramBundle)
+  {
+    paramViewGroup = paramLayoutInflater.inflate(2131427400, paramViewGroup, false);
+    ButterKnife.bind(this, paramViewGroup);
+    paramLayoutInflater = mTrip;
+    if (paramLayoutInflater != null) {
+      paramLayoutInflater = paramLayoutInflater.getWaypointsLeft();
+    } else {
+      paramLayoutInflater = null;
+    }
+    if ((paramLayoutInflater != null) && (paramLayoutInflater.size() > 1)) {
+      paramLayoutInflater = ((Waypoint)paramLayoutInflater.get(0)).getTitle();
+    } else {
+      paramLayoutInflater = "";
+    }
+    showBusy(false);
+    mTvDescription.setText(App.getContext().getString(2131558666, new Object[] { paramLayoutInflater }));
+    return paramViewGroup;
+  }
+  
+  public void onPause()
+  {
+    super.onPause();
+    mIsResumed = false;
+  }
+  
+  public void onResume()
+  {
+    super.onResume();
+    mIsResumed = true;
+    if (mPopAfterPause) {
+      getActivity().getSupportFragmentManager().popBackStack();
+    }
+  }
+  
+  @OnClick({2131230935, 2131230938, 2131230936})
+  public void onSkipCancelOrFailed()
+  {
+    Log.d(TAG, "onSkipCancelOrFailed()");
+    RoutingManager.getInstance().cancelCalculation();
+    getActivity().getSupportFragmentManager().popBackStack();
+  }
+  
+  @OnClick({2131230944})
+  public void onSkipOk()
+  {
+    Log.d(TAG, "onSkipOk()");
+    Object localObject = mTrip;
+    if (localObject != null) {
+      localObject = ((Trip)localObject).getWaypointsLeft();
+    } else {
+      localObject = null;
+    }
+    if ((localObject != null) && (((List)localObject).size() > 1))
+    {
+      Trip localTrip = new Trip(mTrip);
+      waypoints.clear();
+      waypoints.add(Waypoint.MY_LOCATION);
+      waypoints.addAll(((List)localObject).subList(1, ((List)localObject).size()));
+      waypointReached = 0;
+      keepMyLocation = true;
+      calculateNewRoute(localTrip);
+      return;
+    }
+    getActivity().getSupportFragmentManager().popBackStack();
+  }
+  
+  public GuidanceSkipWaypointFragment setTrip(Trip paramTrip)
+  {
+    mTrip = paramTrip;
+    return this;
+  }
+}

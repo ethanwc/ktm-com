@@ -1,0 +1,429 @@
+package com.ktm.navapp.ui.guidance;
+
+import android.content.Context;
+import android.content.res.Resources;
+import android.media.AudioManager;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.View.OnTouchListener;
+import android.view.ViewGroup;
+import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+import com.here.android.mpa.guidance.NavigationManager;
+import com.here.android.mpa.routing.Maneuver;
+import com.here.android.mpa.routing.Maneuver.Action;
+import com.here.android.mpa.routing.Maneuver.Icon;
+import com.here.android.mpa.routing.Maneuver.Turn;
+import com.ktm.navapp.App;
+import com.ktm.navapp.guidance.GuidanceManager;
+import com.ktm.navapp.guidance.IconManager;
+import com.ktm.navapp.guidance.LengthFormatter;
+import com.ktm.navapp.logging.Log;
+import com.ktm.navapp.managers.MapManager;
+import com.ktm.navapp.search.Trip;
+import com.ktm.navapp.search.TripManager;
+import com.ktm.navapp.services.NavigationEvent;
+import com.ktm.navapp.ui.base.NavAppBaseFragment;
+import com.ktm.navapp.ui.mainscreen.ExtendedLogoPosition;
+import com.ktm.navapp.ui.mainscreen.MainScreen;
+import com.ktm.navapp.ui.mainscreen.OnBackPressedHandler;
+import com.ktm.navapp.ui.routing.RouteOptionsFragment;
+import com.ktm.navapp.utilities.Events;
+import com.ktm.navapp.utilities.NavigationManagerProxy;
+import com.ktm.navapp.utilities.Storage;
+import com.squareup.otto.Subscribe;
+import java.util.Date;
+import java.util.List;
+
+public class GuidanceFragment
+  extends NavAppBaseFragment
+  implements OnBackPressedHandler
+{
+  static final String ARG_SIMULATE = "SIMULATE";
+  static final String ARG_STARTED = "STARTED";
+  static final String TAG = GuidanceFragment.class.getSimpleName();
+  private AudioManager mAudioManager;
+  @BindView(2131230919)
+  ImageButton mCancelButton;
+  @BindView(2131231034)
+  ImageButton mCenterButton;
+  @BindView(2131230920)
+  TextView mDistance;
+  @BindView(2131230921)
+  TextView mDistanceUnit;
+  @BindView(2131230922)
+  TextView mDurationHr;
+  @BindView(2131230923)
+  TextView mDurationHrUnit;
+  @BindView(2131230924)
+  TextView mDurationMin;
+  @BindView(2131230925)
+  TextView mDurationMinUnit;
+  @BindView(2131230926)
+  TextView mEtaText;
+  @BindView(2131230927)
+  LinearLayout mGuidanceOverlay;
+  private int mInitialNotificationVolume;
+  @BindView(2131231011)
+  LinearLayout mLeftManeuverLayout;
+  @BindView(2131230928)
+  TextView mManeuverDistance;
+  @BindView(2131230929)
+  ImageView mManeuverIcon;
+  @BindView(2131230930)
+  TextView mManeuverNextRoad;
+  @BindView(2131230931)
+  LinearLayout mMapControls;
+  @BindView(2131231037)
+  ImageButton mMinusButton;
+  @BindView(2131231038)
+  ImageButton mPlusButton;
+  @BindView(2131231013)
+  LinearLayout mRightManeuverLayout;
+  @BindView(2131230946)
+  ImageButton mSkipWaypointButton;
+  private final java.text.DateFormat mTimeFormat = android.text.format.DateFormat.getTimeFormat(App.getContext());
+  
+  public GuidanceFragment() {}
+  
+  public static GuidanceFragment newInstance(boolean paramBoolean)
+  {
+    Log.d(TAG, "newInstance(simulate=%b)", new Object[] { Boolean.valueOf(paramBoolean) });
+    GuidanceFragment localGuidanceFragment = new GuidanceFragment();
+    Bundle localBundle = new Bundle();
+    localBundle.putBoolean("SIMULATE", paramBoolean);
+    localBundle.putBoolean("STARTED", false);
+    localGuidanceFragment.setArguments(localBundle);
+    return localGuidanceFragment;
+  }
+  
+  private void restoreNotificationVolume()
+  {
+    AudioManager localAudioManager = mAudioManager;
+    if (localAudioManager != null) {}
+    try
+    {
+      localAudioManager.setStreamVolume(5, mInitialNotificationVolume, 0);
+      return;
+    }
+    catch (Exception localException) {}
+  }
+  
+  private static void setText(TextView paramTextView, String paramString)
+  {
+    if (!paramTextView.getText().toString().equals(paramString)) {
+      paramTextView.setText(paramString);
+    }
+  }
+  
+  public void handleGuidanceNewManeuver(Maneuver paramManeuver, String paramString1, String paramString2, long paramLong)
+  {
+    mManeuverIcon.setImageResource(IconManager.getIconResource(paramManeuver));
+    mManeuverDistance.setTextAppearance(2131624143);
+    mManeuverDistance.setTextColor(-1);
+    mManeuverDistance.setText(LengthFormatter.getFormatted(paramLong));
+    String str = IconManager.getIconExit(paramManeuver);
+    if (paramManeuver.getAction() != Maneuver.Action.STOPOVER) {
+      paramString1 = paramString2;
+    }
+    if (!str.isEmpty())
+    {
+      mManeuverNextRoad.setBackgroundColor(-16777216);
+      paramManeuver = mManeuverNextRoad;
+      paramString1 = new StringBuilder();
+      paramString1.append(getString(2131558496));
+      paramString1.append(" ");
+      paramString1.append(str);
+      paramManeuver.setText(paramString1.toString());
+      mManeuverNextRoad.setVisibility(0);
+      return;
+    }
+    if ((paramString1 != null) && (!paramString1.trim().isEmpty()))
+    {
+      mManeuverNextRoad.setBackground(getResources().getDrawable(2131165375, null));
+      mManeuverNextRoad.setText(paramString1);
+      mManeuverNextRoad.setVisibility(0);
+      return;
+    }
+    mManeuverNextRoad.setVisibility(4);
+  }
+  
+  public void handleGuidanceUpdate(long paramLong1, long paramLong2, Date paramDate)
+  {
+    long l = (paramDate.getTime() - System.currentTimeMillis()) / 60000L;
+    mManeuverDistance.setTextAppearance(2131624143);
+    mManeuverDistance.setTextColor(-1);
+    setText(mManeuverDistance, LengthFormatter.getFormatted(paramLong1));
+    setText(mEtaText, mTimeFormat.format(paramDate));
+    paramDate = LengthFormatter.getFormattedExt(paramLong2);
+    setText(mDistance, paramDate[0]);
+    setText(mDistanceUnit, paramDate[1]);
+    paramLong1 = l / 60L;
+    paramLong2 = l % 60L;
+    if (paramLong1 < 1L)
+    {
+      setText(mDurationHr, "");
+      setText(mDurationHrUnit, "");
+      mDurationHrUnit.setVisibility(8);
+      setText(mDurationMin, String.valueOf(paramLong2));
+      setText(mDurationMinUnit, "min");
+      return;
+    }
+    setText(mDurationHr, String.valueOf(paramLong1));
+    setText(mDurationHrUnit, "h");
+    mDurationHrUnit.setVisibility(0);
+    setText(mDurationMin, String.valueOf(paramLong2));
+    setText(mDurationMinUnit, "m");
+  }
+  
+  @Subscribe
+  public void handleNavigationEvent(NavigationEvent paramNavigationEvent)
+  {
+    Object localObject = GuidanceManager.getInstance();
+    switch (3.$SwitchMap$com$ktm$navapp$services$NavigationEvent$EventType[type.ordinal()])
+    {
+    default: 
+      return;
+    case 7: 
+      Log.d(TAG, "GUIDANCE_ENDED");
+      ((GuidanceManager)localObject).cancelGuidance();
+      ((MainScreen)getActivity()).onGuidanceFinished();
+      return;
+    case 6: 
+      Log.d(TAG, "REACHED_DESTINATION");
+      showReachedDestinationView();
+      return;
+    case 5: 
+      Log.d(TAG, "REACHED_STOPOVER %d", new Object[] { Integer.valueOf(stopOver) });
+      updateSkipButton();
+      return;
+    case 4: 
+      Log.d(TAG, "GUIDANCE_STARTED");
+      updateSkipButton();
+      return;
+    case 3: 
+      mManeuverIcon.setImageResource(2131165986);
+      mManeuverDistance.setTextAppearance(2131624171);
+      mManeuverDistance.setTextColor(-1);
+      mManeuverDistance.setText(App.getContext().getString(2131558515));
+      mManeuverNextRoad.setVisibility(4);
+      return;
+    case 2: 
+      Maneuver localManeuver = NavigationManagerProxy.getInstance().getNextManeuver();
+      if (localManeuver != null)
+      {
+        String str3 = TAG;
+        localObject = localManeuver.getAction();
+        String str2 = "";
+        if (localObject != null) {
+          localObject = localManeuver.getAction().name();
+        } else {
+          localObject = "";
+        }
+        String str1;
+        if (localManeuver.getTurn() != null) {
+          str1 = localManeuver.getTurn().name();
+        } else {
+          str1 = "";
+        }
+        if (localManeuver.getIcon() != null) {
+          str2 = localManeuver.getIcon().name();
+        }
+        Log.d(str3, "onNewInstructionEvent() action=%s, turn=%s, icon=%s, distance=%d, road=%s, nextRoad=%s", new Object[] { localObject, str1, str2, Long.valueOf(distMan), localManeuver.getRoadName(), localManeuver.getNextRoadName() });
+        handleGuidanceNewManeuver(localManeuver, localManeuver.getRoadName(), localManeuver.getNextRoadName(), distMan);
+      }
+      handleGuidanceUpdate(distMan, distDest, etaDest);
+      return;
+    }
+    handleGuidanceUpdate(distMan, distDest, etaDest);
+  }
+  
+  public void onActivityCreated(Bundle paramBundle)
+  {
+    super.onActivityCreated(paramBundle);
+    mLeftManeuverLayout.setOnTouchListener(new View.OnTouchListener()
+    {
+      public boolean onTouch(View paramAnonymousView, MotionEvent paramAnonymousMotionEvent)
+      {
+        return true;
+      }
+    });
+    mRightManeuverLayout.setOnTouchListener(new View.OnTouchListener()
+    {
+      public boolean onTouch(View paramAnonymousView, MotionEvent paramAnonymousMotionEvent)
+      {
+        return true;
+      }
+    });
+    if (!getArguments().getBoolean("STARTED", false))
+    {
+      Log.d(TAG, "onActivityCreated(): STARTING GUIDANCE");
+      MapManager.getInstance().clearMarkers();
+      MapManager.getInstance().clearRoutes();
+      mManeuverIcon.setImageResource(IconManager.getIconResource(null));
+      mAudioManager = ((AudioManager)App.getContext().getSystemService("audio"));
+      paramBundle = mAudioManager;
+      if (paramBundle != null) {
+        mInitialNotificationVolume = paramBundle.getStreamVolume(5);
+      }
+      GuidanceManager.getInstance().startGuidance(getArguments().getBoolean("SIMULATE", false), false);
+      getArguments().putBoolean("STARTED", true);
+    }
+  }
+  
+  public boolean onBackPressed()
+  {
+    Log.d(TAG, "onBackPressed()");
+    if (!GuidanceManager.isGuidanceView())
+    {
+      switchGuidanceView(true);
+      return true;
+    }
+    GuidanceCancelFragment localGuidanceCancelFragment = new GuidanceCancelFragment();
+    getActivity().getSupportFragmentManager().beginTransaction().add(2131231033, localGuidanceCancelFragment).addToBackStack(null).commitAllowingStateLoss();
+    return true;
+  }
+  
+  @OnClick({2131230919})
+  public void onCancelButton()
+  {
+    Log.d(TAG, "onCancelButton()");
+    getActivity().getSupportFragmentManager().beginTransaction().add(2131231033, new GuidanceCancelFragment()).addToBackStack(null).commitAllowingStateLoss();
+  }
+  
+  @OnClick({2131231034})
+  void onCenterButton()
+  {
+    switchGuidanceView(true);
+  }
+  
+  public View onCreateView(LayoutInflater paramLayoutInflater, ViewGroup paramViewGroup, Bundle paramBundle)
+  {
+    Log.d(TAG, "onCreateView()");
+    paramLayoutInflater = paramLayoutInflater.inflate(2131427397, paramViewGroup, false);
+    ButterKnife.bind(this, paramLayoutInflater);
+    ((MainScreen)getActivity()).configCopyrightIconPosition(ExtendedLogoPosition.BOTTOM_RIGHT);
+    return paramLayoutInflater;
+  }
+  
+  public void onMapTouched()
+  {
+    switchGuidanceView(false);
+  }
+  
+  @OnClick({2131230932})
+  public void onOptionsButton()
+  {
+    Log.d(TAG, "onOptionsButton()");
+    TripManager.setTrip(TripManager.getActiveRemainingTrip());
+    TripManager.backupTrip();
+    getActivity().getSupportFragmentManager().beginTransaction().replace(2131231033, RouteOptionsFragment.newInstance(true)).addToBackStack(null).commit();
+  }
+  
+  public void onPause()
+  {
+    restoreNotificationVolume();
+    mGuidanceOverlay.setVisibility(4);
+    mCancelButton.setVisibility(4);
+    mSkipWaypointButton.setVisibility(4);
+    Events.unregister(this);
+    super.onPause();
+  }
+  
+  public void onResume()
+  {
+    super.onResume();
+    restoreGuidanceState();
+    mGuidanceOverlay.setVisibility(0);
+    mCancelButton.setVisibility(0);
+    Events.register(this);
+  }
+  
+  @OnClick({2131230946})
+  public void onSkipWaypointButton()
+  {
+    Log.d(TAG, "onSkipWaypointButton()");
+    Trip localTrip = (Trip)mSkipWaypointButton.getTag();
+    if (localTrip != null) {
+      getActivity().getSupportFragmentManager().beginTransaction().add(2131231033, new GuidanceSkipWaypointFragment().setTrip(localTrip)).addToBackStack(null).commit();
+    }
+  }
+  
+  @OnClick({2131231038})
+  void onZoomIn()
+  {
+    MapManager.getInstance().zoomIn(false, false);
+  }
+  
+  @OnClick({2131231037})
+  void onZoomOut()
+  {
+    MapManager.getInstance().zoomOut(false);
+  }
+  
+  public void restoreGuidanceState()
+  {
+    Maneuver localManeuver = NavigationManagerProxy.getInstance().getNextManeuver();
+    if (localManeuver != null)
+    {
+      long l = NavigationManagerProxy.getInstance().getNextManeuverDistance();
+      handleGuidanceNewManeuver(localManeuver, localManeuver.getRoadName(), localManeuver.getNextRoadName(), l);
+    }
+    updateSkipButton();
+    if (((Boolean)Storage.load("reacheddestination", Boolean.class, Boolean.valueOf(false))).booleanValue()) {
+      showReachedDestinationView();
+    }
+  }
+  
+  public void showReachedDestinationView()
+  {
+    ReachedDestinationFragment localReachedDestinationFragment = new ReachedDestinationFragment();
+    getActivity().getSupportFragmentManager().beginTransaction().replace(2131231033, localReachedDestinationFragment).addToBackStack(null).commit();
+  }
+  
+  void switchGuidanceView(boolean paramBoolean)
+  {
+    GuidanceManager.setGuidanceView(paramBoolean, false);
+    LinearLayout localLinearLayout1 = mGuidanceOverlay;
+    if ((localLinearLayout1 != null) && (mCancelButton != null))
+    {
+      LinearLayout localLinearLayout2 = mMapControls;
+      if (localLinearLayout2 != null)
+      {
+        if (paramBoolean)
+        {
+          localLinearLayout2.setVisibility(4);
+          mCancelButton.setVisibility(0);
+          mGuidanceOverlay.setVisibility(0);
+          return;
+        }
+        localLinearLayout1.setVisibility(4);
+        mCancelButton.setVisibility(4);
+        mMapControls.setVisibility(0);
+      }
+    }
+  }
+  
+  void updateSkipButton()
+  {
+    Trip localTrip = TripManager.getActiveTrip();
+    if (localTrip.getWaypointsLeft().size() > 1)
+    {
+      mSkipWaypointButton.setTag(localTrip);
+      mSkipWaypointButton.setVisibility(0);
+      return;
+    }
+    mSkipWaypointButton.setTag(null);
+    mSkipWaypointButton.setVisibility(4);
+  }
+}

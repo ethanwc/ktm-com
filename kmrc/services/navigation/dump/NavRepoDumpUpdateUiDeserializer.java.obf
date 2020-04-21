@@ -1,0 +1,52 @@
+package com.ktm.kmrc.services.navigation.dump;
+
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import java.lang.reflect.Type;
+
+public class NavRepoDumpUpdateUiDeserializer
+  implements JsonDeserializer<UpdateUIDump>
+{
+  private UpdateUIDump updateUIDump = new UpdateUIDump();
+  
+  public NavRepoDumpUpdateUiDeserializer() {}
+  
+  public UpdateUIDump deserialize(JsonElement paramJsonElement, Type paramType, JsonDeserializationContext paramJsonDeserializationContext)
+    throws JsonParseException
+  {
+    if (paramJsonElement.getAsJsonObject().has("TurnIcon")) {
+      updateUIDump.turnIcon = ((TurnIconDump)paramJsonDeserializationContext.deserialize(paramJsonElement.getAsJsonObject().get("TurnIcon"), TurnIconDump.class));
+    }
+    if (paramJsonElement.getAsJsonObject().has("TurnDist")) {
+      updateUIDump.turnDist = ((LabelDump)paramJsonDeserializationContext.deserialize(paramJsonElement.getAsJsonObject().get("TurnDist"), LabelDump.class));
+    }
+    if (paramJsonElement.getAsJsonObject().has("TurnDistUnit")) {
+      updateUIDump.turnDistUnit = ((LabelDump)paramJsonDeserializationContext.deserialize(paramJsonElement.getAsJsonObject().get("TurnDistUnit"), LabelDump.class));
+    }
+    if (paramJsonElement.getAsJsonObject().has("TurnInfo")) {
+      updateUIDump.turnInfo = ((LabelDump)paramJsonDeserializationContext.deserialize(paramJsonElement.getAsJsonObject().get("TurnInfo"), LabelDump.class));
+    }
+    if (paramJsonElement.getAsJsonObject().has("TurnRoad")) {
+      updateUIDump.turnRoad = ((LabelDump)paramJsonDeserializationContext.deserialize(paramJsonElement.getAsJsonObject().get("TurnRoad"), LabelDump.class));
+    }
+    if (paramJsonElement.getAsJsonObject().has("ETA")) {
+      updateUIDump.eta = ((LabelDump)paramJsonDeserializationContext.deserialize(paramJsonElement.getAsJsonObject().get("ETA"), LabelDump.class));
+    }
+    if (paramJsonElement.getAsJsonObject().has("Dist2Target")) {
+      updateUIDump.dist2Target = ((LabelDump)paramJsonDeserializationContext.deserialize(paramJsonElement.getAsJsonObject().get("Dist2Target"), LabelDump.class));
+    }
+    if (paramJsonElement.getAsJsonObject().has("NotificationIcon")) {
+      updateUIDump.notificationIcon = ((NotificationIconDump)paramJsonDeserializationContext.deserialize(paramJsonElement.getAsJsonObject().get("NotificationIcon"), NotificationIconDump.class));
+    }
+    if (paramJsonElement.getAsJsonObject().has("NotificationText")) {
+      updateUIDump.notificationText = ((LabelDump)paramJsonDeserializationContext.deserialize(paramJsonElement.getAsJsonObject().get("NotificationText"), LabelDump.class));
+    }
+    if (paramJsonElement.getAsJsonObject().has("GpsIcon")) {
+      updateUIDump.gpsIcon = ((GpsIconDump)paramJsonDeserializationContext.deserialize(paramJsonElement.getAsJsonObject().get("GpsIcon"), GpsIconDump.class));
+    }
+    return updateUIDump;
+  }
+}

@@ -1,0 +1,58 @@
+package com.com.navapp.ui.trip;
+
+import android.view.View;
+import android.widget.EditText;
+import android.widget.TextView;
+import androidx.recyclerview.widget.RecyclerView;
+import butterknife.Unbinder;
+import butterknife.internal.Utils;
+
+public class LoadTripFragment_ViewBinding
+  implements Unbinder
+{
+  private LoadTripFragment target;
+  private View view7f080248;
+  private View view7f080249;
+  private View view7f080251;
+  
+  public LoadTripFragment_ViewBinding(LoadTripFragment paramLoadTripFragment, View paramView)
+  {
+    target = paramLoadTripFragment;
+    mScreenLoad = Utils.findRequiredView(paramView, 2131231170, "field 'mScreenLoad'");
+    mScreenDelete = Utils.findRequiredView(paramView, 2131231168, "field 'mScreenDelete'");
+    mDeleteText = ((TextView)Utils.findRequiredViewAsType(paramView, 2131231306, "field 'mDeleteText'", TextView.class));
+    mEditText = ((EditText)Utils.findRequiredViewAsType(paramView, 2131231314, "field 'mEditText'", EditText.class));
+    mRvTrips = ((RecyclerView)Utils.findRequiredViewAsType(paramView, 2131231315, "field 'mRvTrips'", RecyclerView.class));
+    View localView = Utils.findRequiredView(paramView, 2131231313, "method 'onBackButton'");
+    view7f080251 = localView;
+    localView.setOnClickListener(new LoadTripFragment_ViewBinding.1(this, paramLoadTripFragment));
+    localView = Utils.findRequiredView(paramView, 2131231304, "method 'onDeleteNo'");
+    view7f080248 = localView;
+    localView.setOnClickListener(new LoadTripFragment_ViewBinding.2(this, paramLoadTripFragment));
+    paramView = Utils.findRequiredView(paramView, 2131231305, "method 'onDeleteYes'");
+    view7f080249 = paramView;
+    paramView.setOnClickListener(new LoadTripFragment_ViewBinding.3(this, paramLoadTripFragment));
+  }
+  
+  public void unbind()
+  {
+    LoadTripFragment localLoadTripFragment = target;
+    if (localLoadTripFragment != null)
+    {
+      target = null;
+      mScreenLoad = null;
+      mScreenDelete = null;
+      mDeleteText = null;
+      mEditText = null;
+      mRvTrips = null;
+      view7f080251.setOnClickListener(null);
+      view7f080251 = null;
+      view7f080248.setOnClickListener(null);
+      view7f080248 = null;
+      view7f080249.setOnClickListener(null);
+      view7f080249 = null;
+      return;
+    }
+    throw new IllegalStateException("Bindings already cleared.");
+  }
+}

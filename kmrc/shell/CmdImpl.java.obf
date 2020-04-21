@@ -1,0 +1,1134 @@
+package com.ktm.kmrc.shell;
+
+import com.ktm.kmrc.TransportMap;
+import com.ktm.kmrc.io.Connection;
+import com.ktm.kmrc.io.socket.btbluecove.BtClientKSocket;
+import com.ktm.kmrc.io.socket.btbluecove.BtServerKSocket;
+import com.ktm.kmrc.io.socket.tcp.TcpClientKSocket;
+import com.ktm.kmrc.io.socket.tcp.TcpServerKSocket;
+import com.ktm.kmrc.services.navigation.NavClientConnection;
+import com.ktm.kmrc.services.navigation.NavRepo;
+import com.ktm.kmrc.services.navigation.NavServerConnection;
+import com.ktm.kmrc.services.navigation.TurnIcon;
+import com.ktm.kmrc.services.navigation.Value;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
+class CmdImpl
+{
+  CmdImpl() {}
+  
+  private static String join(List<String> paramList)
+  {
+    int j = paramList.size();
+    int i = 0;
+    if (j == 1) {
+      return (String)paramList.get(0);
+    }
+    String str = "";
+    while (i < paramList.size())
+    {
+      StringBuilder localStringBuilder = new StringBuilder();
+      localStringBuilder.append(str);
+      localStringBuilder.append((String)paramList.get(i));
+      if (i != paramList.size() - 1) {
+        str = " ";
+      } else {
+        str = "";
+      }
+      localStringBuilder.append(str);
+      str = localStringBuilder.toString();
+      i += 1;
+    }
+    return str;
+  }
+  
+  private static List<String> readFile(String paramString1, String paramString2)
+  {
+    Object localObject = paramString1;
+    if (!paramString1.startsWith(File.separator))
+    {
+      localObject = new StringBuilder();
+      ((StringBuilder)localObject).append(paramString2);
+      ((StringBuilder)localObject).append(File.separator);
+      ((StringBuilder)localObject).append(paramString1);
+      localObject = ((StringBuilder)localObject).toString();
+    }
+    paramString2 = new File((String)localObject).getAbsoluteFile();
+    paramString1 = new ArrayList();
+    try
+    {
+      if (paramString2.exists())
+      {
+        boolean bool = paramString2.isFile();
+        if (bool)
+        {
+          if (paramString2.canRead())
+          {
+            paramString2 = new BufferedReader(new InputStreamReader(new FileInputStream(paramString2.getCanonicalPath()), StandardCharsets.UTF_8));
+            for (;;)
+            {
+              String str = paramString2.readLine();
+              if (str == null) {
+                break;
+              }
+              paramString1.add(str);
+            }
+            paramString2.close();
+            return paramString1;
+          }
+          paramString1 = new StringBuilder();
+          paramString1.append((String)localObject);
+          paramString1.append(" not a file");
+          throw new RuntimeException(paramString1.toString());
+        }
+        paramString1 = new StringBuilder();
+        paramString1.append((String)localObject);
+        paramString1.append(" not a file");
+        throw new RuntimeException(paramString1.toString());
+      }
+      paramString1 = new StringBuilder();
+      paramString1.append((String)localObject);
+      paramString1.append(" does not exist");
+      throw new RuntimeException(paramString1.toString());
+    }
+    catch (Exception paramString1)
+    {
+      paramString2 = new StringBuilder();
+      paramString2.append((String)localObject);
+      paramString2.append(" :");
+      paramString2.append(paramString1.getMessage());
+      throw new RuntimeException(paramString2.toString());
+    }
+  }
+  
+  public static class BatchCat
+    implements Node.CmdNodeListener
+  {
+    private final Kshell kshell;
+    
+    BatchCat(Kshell paramKshell)
+    {
+      kshell = paramKshell;
+    }
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      if (paramCommand.parameters().size() == 1)
+      {
+        paramNode = CmdImpl.readFile((String)paramCommand.parameters().get(0), kshell.cwd()).iterator();
+        while (paramNode.hasNext())
+        {
+          paramCommand = (String)paramNode.next();
+          System.out.println(paramCommand);
+        }
+        return;
+      }
+      StringBuilder localStringBuilder = new StringBuilder();
+      localStringBuilder.append("'");
+      localStringBuilder.append(paramCommand.line());
+      localStringBuilder.append("' parameter error, usage: ");
+      localStringBuilder.append(paramNode.id());
+      localStringBuilder.append(" ");
+      localStringBuilder.append(paramNode.params());
+      throw new IllegalArgumentException(localStringBuilder.toString());
+    }
+  }
+  
+  public static class BatchCd
+    implements Node.CmdNodeListener
+  {
+    private final Kshell kshell;
+    
+    BatchCd(Kshell paramKshell)
+    {
+      kshell = paramKshell;
+    }
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      if (paramCommand.parameters().size() == 1)
+      {
+        paramCommand = (String)paramCommand.parameters().get(0);
+        paramNode = paramCommand;
+        if (!paramCommand.startsWith(File.separator))
+        {
+          paramNode = new StringBuilder();
+          paramNode.append(kshell.cwd());
+          paramNode.append(File.separator);
+          paramNode.append(paramCommand);
+          paramNode = paramNode.toString();
+        }
+        paramCommand = new File(paramNode).getAbsoluteFile();
+        if (paramCommand.exists())
+        {
+          if (paramCommand.isDirectory()) {
+            try
+            {
+              kshell.setCwd(paramCommand.getCanonicalPath());
+              return;
+            }
+            catch (IOException paramCommand)
+            {
+              localStringBuilder = new StringBuilder();
+              localStringBuilder.append("cd ");
+              localStringBuilder.append(paramNode);
+              localStringBuilder.append(" :");
+              localStringBuilder.append(paramCommand.getMessage());
+              throw new RuntimeException(localStringBuilder.toString());
+            }
+          }
+          paramCommand = new StringBuilder();
+          paramCommand.append("cd ");
+          paramCommand.append(paramNode);
+          paramCommand.append(" not a directory");
+          throw new RuntimeException(paramCommand.toString());
+        }
+        paramCommand = new StringBuilder();
+        paramCommand.append("cd ");
+        paramCommand.append(paramNode);
+        paramCommand.append(" does not exist");
+        throw new RuntimeException(paramCommand.toString());
+      }
+      StringBuilder localStringBuilder = new StringBuilder();
+      localStringBuilder.append("'");
+      localStringBuilder.append(paramCommand.line());
+      localStringBuilder.append("' parameter error, usage: ");
+      localStringBuilder.append(paramNode.id());
+      localStringBuilder.append(" ");
+      localStringBuilder.append(paramNode.params());
+      throw new IllegalArgumentException(localStringBuilder.toString());
+    }
+  }
+  
+  public static class BatchLs
+    implements Node.CmdNodeListener
+  {
+    private final Kshell kshell;
+    
+    BatchLs(Kshell paramKshell)
+    {
+      kshell = paramKshell;
+    }
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      if (paramCommand.parameters().size() == 0)
+      {
+        paramNode = new File(kshell.cwd());
+        System.out.println(kshell.cwd());
+        paramNode = paramNode.list();
+        int j = paramNode.length;
+        int i = 0;
+        while (i < j)
+        {
+          paramCommand = paramNode[i];
+          System.out.println(paramCommand);
+          i += 1;
+        }
+        return;
+      }
+      StringBuilder localStringBuilder = new StringBuilder();
+      localStringBuilder.append("'");
+      localStringBuilder.append(paramCommand.line());
+      localStringBuilder.append("' parameter error, usage: ");
+      localStringBuilder.append(paramNode.id());
+      localStringBuilder.append(" ");
+      localStringBuilder.append(paramNode.params());
+      throw new IllegalArgumentException(localStringBuilder.toString());
+    }
+  }
+  
+  public static class BatchPwd
+    implements Node.CmdNodeListener
+  {
+    private final Kshell kshell;
+    
+    BatchPwd(Kshell paramKshell)
+    {
+      kshell = paramKshell;
+    }
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      if (paramCommand.parameters().size() == 0)
+      {
+        System.out.println(kshell.cwd());
+        return;
+      }
+      StringBuilder localStringBuilder = new StringBuilder();
+      localStringBuilder.append("'");
+      localStringBuilder.append(paramCommand.line());
+      localStringBuilder.append("' parameter error, usage: ");
+      localStringBuilder.append(paramNode.id());
+      localStringBuilder.append(" ");
+      localStringBuilder.append(paramNode.params());
+      throw new IllegalArgumentException(localStringBuilder.toString());
+    }
+  }
+  
+  public static class BatchSource
+    implements Node.CmdNodeListener
+  {
+    private final Kshell kshell;
+    
+    BatchSource(Kshell paramKshell)
+    {
+      kshell = paramKshell;
+    }
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      if (paramCommand.parameters().size() == 1)
+      {
+        paramCommand = CmdImpl.readFile((String)paramCommand.parameters().get(0), kshell.cwd()).iterator();
+        for (;;)
+        {
+          if (paramCommand.hasNext())
+          {
+            localObject = (String)paramCommand.next();
+            try
+            {
+              if (kshell.isEchoCmd()) {
+                kshell.logCmd("Batch Cmd: ", (String)localObject);
+              }
+              paramNode = paramNode.process(kshell.rootNode(), (String)localObject);
+            }
+            catch (Exception paramNode)
+            {
+              System.err.println(paramNode.getMessage());
+              System.err.flush();
+            }
+          }
+        }
+        return;
+      }
+      Object localObject = new StringBuilder();
+      ((StringBuilder)localObject).append("'");
+      ((StringBuilder)localObject).append(paramCommand.line());
+      ((StringBuilder)localObject).append("' parameter error, usage: ");
+      ((StringBuilder)localObject).append(paramNode.id());
+      ((StringBuilder)localObject).append(" ");
+      ((StringBuilder)localObject).append(paramNode.params());
+      throw new IllegalArgumentException(((StringBuilder)localObject).toString());
+    }
+  }
+  
+  public static class ComMode
+    implements Node.CmdNodeListener
+  {
+    private final Kshell kshell;
+    private final TransportType transportType;
+    
+    public ComMode(Kshell paramKshell, TransportType paramTransportType)
+    {
+      kshell = paramKshell;
+      transportType = paramTransportType;
+    }
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      if (paramCommand.parameters().size() == 0)
+      {
+        kshell.setTransportType(transportType);
+        return;
+      }
+      StringBuilder localStringBuilder = new StringBuilder();
+      localStringBuilder.append("'");
+      localStringBuilder.append(paramCommand.line());
+      localStringBuilder.append("' parameter error, usage: ");
+      localStringBuilder.append(paramNode.id());
+      localStringBuilder.append(" ");
+      localStringBuilder.append(paramNode.usage());
+      throw new IllegalArgumentException(localStringBuilder.toString());
+    }
+  }
+  
+  public static class DisconnectConnection
+    implements Node.CmdNodeListener
+  {
+    private final Connection connection;
+    
+    DisconnectConnection(Connection paramConnection)
+    {
+      connection = paramConnection;
+    }
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      try
+      {
+        connection.disconnect();
+        return;
+      }
+      catch (Exception paramNode)
+      {
+        StringBuilder localStringBuilder = new StringBuilder();
+        localStringBuilder.append("'");
+        localStringBuilder.append(paramCommand.command());
+        localStringBuilder.append("' : ");
+        localStringBuilder.append(paramNode.getMessage());
+        throw new RuntimeException(localStringBuilder.toString());
+      }
+    }
+  }
+  
+  public static class Echo
+    implements Node.CmdNodeListener
+  {
+    private final Kshell kshell;
+    
+    Echo(Kshell paramKshell)
+    {
+      kshell = paramKshell;
+    }
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      if (paramCommand.parameters().size() <= 1)
+      {
+        if (paramCommand.parameters().size() == 0)
+        {
+          kshell.toggleEchoCmd();
+        }
+        else if (((String)paramCommand.parameters().get(0)).equals("true"))
+        {
+          kshell.setEchoCmd(true);
+        }
+        else
+        {
+          if (!((String)paramCommand.parameters().get(0)).equals("false")) {
+            break label126;
+          }
+          kshell.setEchoCmd(false);
+        }
+        if (kshell.isEchoCmd())
+        {
+          kshell.log("echoing enabled");
+          return;
+        }
+        kshell.log("echoing disabled");
+        return;
+        label126:
+        localStringBuilder = new StringBuilder();
+        localStringBuilder.append("'");
+        localStringBuilder.append(paramCommand.line());
+        localStringBuilder.append("' unknown parameter '");
+        localStringBuilder.append((String)paramCommand.parameters().get(0));
+        localStringBuilder.append("', usage: ");
+        localStringBuilder.append(paramNode.id());
+        localStringBuilder.append(" ");
+        localStringBuilder.append(paramNode.params());
+        throw new IllegalArgumentException(localStringBuilder.toString());
+      }
+      StringBuilder localStringBuilder = new StringBuilder();
+      localStringBuilder.append("'");
+      localStringBuilder.append(paramCommand.line());
+      localStringBuilder.append("' parameter error, usage: ");
+      localStringBuilder.append(paramNode.id());
+      localStringBuilder.append(" ");
+      localStringBuilder.append(paramNode.params());
+      throw new IllegalArgumentException(localStringBuilder.toString());
+    }
+  }
+  
+  public static class EstablishConnection
+    implements Node.CmdNodeListener
+  {
+    private final Connection connection;
+    private final Kshell kshell;
+    
+    EstablishConnection(Connection paramConnection, Kshell paramKshell)
+    {
+      connection = paramConnection;
+      kshell = paramKshell;
+    }
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      try
+      {
+        int i = CmdImpl.1.$SwitchMap$com$ktm$kmrc$shell$TransportType[kshell.transportType().ordinal()];
+        if (i != 1)
+        {
+          if (i != 2)
+          {
+            if ((i != 3) && (i != 4)) {
+              return;
+            }
+            paramNode = new StringBuilder();
+            paramNode.append("'");
+            paramNode.append(paramCommand.line());
+            paramNode.append("Transport type ");
+            paramNode.append(kshell.toString());
+            paramNode.append(" not yet implemented");
+            throw new IllegalArgumentException(paramNode.toString());
+          }
+          if (((connection instanceof NavServerConnection)) && (paramCommand.parameters().size() == 0))
+          {
+            if (paramCommand.parameters().size() <= 1)
+            {
+              connection.establish(new BtServerKSocket("localhost", TransportMap.NAVIGATION.uuidString()));
+              return;
+            }
+            localStringBuilder = new StringBuilder();
+            localStringBuilder.append("'");
+            localStringBuilder.append(paramCommand.line());
+            localStringBuilder.append("' parameter error, usage: ");
+            localStringBuilder.append(paramNode.id());
+            localStringBuilder.append(" ");
+            localStringBuilder.append(paramNode.params());
+            throw new IllegalArgumentException(localStringBuilder.toString());
+          }
+          if ((connection instanceof NavClientConnection))
+          {
+            if (paramCommand.parameters().size() != 0)
+            {
+              connection.establish(new BtClientKSocket(CmdImpl.join(paramCommand.parameters()), TransportMap.NAVIGATION.uuidString()));
+              return;
+            }
+            localStringBuilder = new StringBuilder();
+            localStringBuilder.append("'");
+            localStringBuilder.append(paramCommand.line());
+            localStringBuilder.append("' parameter error, usage: ");
+            localStringBuilder.append(paramNode.id());
+            localStringBuilder.append(" ");
+            localStringBuilder.append(paramNode.params());
+            throw new IllegalArgumentException(localStringBuilder.toString());
+          }
+        }
+        else
+        {
+          if (paramCommand.parameters().size() <= 1)
+          {
+            if (((connection instanceof NavServerConnection)) && (paramCommand.parameters().size() == 0))
+            {
+              connection.establish(new TcpServerKSocket("0.0.0.0", TransportMap.NAVIGATION.port()));
+              return;
+            }
+            if (((connection instanceof NavClientConnection)) && (paramCommand.parameters().size() == 0))
+            {
+              connection.establish(new TcpClientKSocket("127.0.0.1", TransportMap.NAVIGATION.port()));
+              return;
+            }
+            connection.establish(new TcpClientKSocket((String)paramCommand.parameters().get(0), TransportMap.NAVIGATION.port()));
+            return;
+          }
+          localStringBuilder = new StringBuilder();
+          localStringBuilder.append("'");
+          localStringBuilder.append(paramCommand.line());
+          localStringBuilder.append("' parameter error, usage: ");
+          localStringBuilder.append(paramNode.id());
+          localStringBuilder.append(" ");
+          localStringBuilder.append(paramNode.params());
+          throw new IllegalArgumentException(localStringBuilder.toString());
+        }
+      }
+      catch (IOException paramNode)
+      {
+        paramCommand = System.err;
+        StringBuilder localStringBuilder = new StringBuilder();
+        localStringBuilder.append("Error establish connection: ");
+        localStringBuilder.append(paramNode.getMessage());
+        paramCommand.println(localStringBuilder.toString());
+      }
+    }
+  }
+  
+  public static class Exit
+    implements Node.CmdNodeListener
+  {
+    private final Kshell kshell;
+    
+    Exit(Kshell paramKshell)
+    {
+      kshell = paramKshell;
+    }
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      StringBuilder localStringBuilder;
+      try
+      {
+        kshell.navClient().disconnect();
+      }
+      catch (Exception paramNode)
+      {
+        paramCommand = System.err;
+        localStringBuilder = new StringBuilder();
+        localStringBuilder.append("Error stopping client: ");
+        localStringBuilder.append(paramNode.getMessage());
+        paramCommand.println(localStringBuilder.toString());
+      }
+      try
+      {
+        kshell.navServer().disconnect();
+      }
+      catch (Exception paramNode)
+      {
+        paramCommand = System.err;
+        localStringBuilder = new StringBuilder();
+        localStringBuilder.append("Error stopping server: ");
+        localStringBuilder.append(paramNode.getMessage());
+        paramCommand.println(localStringBuilder.toString());
+      }
+      System.exit(1);
+    }
+  }
+  
+  public static class KeyValueSetString
+    implements Node.CmdNodeListener
+  {
+    private final Value<String> keyValue;
+    
+    KeyValueSetString(Value<String> paramValue)
+    {
+      keyValue = paramValue;
+    }
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      int i = 0;
+      while (i < paramCommand.parameters().size())
+      {
+        if (((String)paramCommand.parameters().get(i)).equals("\"\"")) {
+          paramCommand.parameters().set(i, "");
+        }
+        i += 1;
+      }
+      if (paramCommand.parameters().size() == 0)
+      {
+        keyValue.set(null);
+        return;
+      }
+      keyValue.set(CmdImpl.join(paramCommand.parameters()));
+    }
+  }
+  
+  public static class KeyValueSetTurnIcon
+    implements Node.CmdNodeListener
+  {
+    private final Value<TurnIcon> keyValue;
+    
+    KeyValueSetTurnIcon(Value<TurnIcon> paramValue)
+    {
+      keyValue = paramValue;
+    }
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      int i = 0;
+      while (i < paramCommand.parameters().size())
+      {
+        if (((String)paramCommand.parameters().get(i)).equals("\"\"")) {
+          paramCommand.parameters().set(i, "");
+        }
+        i += 1;
+      }
+      if (paramCommand.parameters().size() == 0)
+      {
+        keyValue.set(null);
+        return;
+      }
+      keyValue.set(TurnIcon.valueOf(CmdImpl.join(paramCommand.parameters())));
+    }
+  }
+  
+  public static class ListContent
+    implements Node.CmdNodeListener
+  {
+    public ListContent() {}
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      paramCommand = paramNode.parent().getChildren();
+      int j = 0;
+      int i = j;
+      while (paramCommand.hasNext())
+      {
+        localObject = (Node)paramCommand.next();
+        k = i;
+        if (((Node)localObject).id().length() + ((Node)localObject).params().length() > i) {
+          k = ((Node)localObject).id().length() + ((Node)localObject).params().length();
+        }
+        i = k;
+        if (((Node)localObject).params().length() > 0)
+        {
+          j = 1;
+          i = k;
+        }
+      }
+      int k = i;
+      if (j != 0) {
+        k = i + 1;
+      }
+      paramCommand = String.format("\t%%-%ds : %%s", new Object[] { Integer.valueOf(k) });
+      Object localObject = paramNode.parent().getChildren();
+      while (((Iterator)localObject).hasNext())
+      {
+        Node localNode = (Node)((Iterator)localObject).next();
+        PrintStream localPrintStream = System.out;
+        StringBuilder localStringBuilder = new StringBuilder();
+        localStringBuilder.append(localNode.id());
+        if (localNode.params().length() > 0)
+        {
+          paramNode = new StringBuilder();
+          paramNode.append(" ");
+          paramNode.append(localNode.params());
+          paramNode = paramNode.toString();
+        }
+        else
+        {
+          paramNode = "";
+        }
+        localStringBuilder.append(paramNode);
+        localPrintStream.println(String.format(paramCommand, new Object[] { localStringBuilder.toString(), localNode.usage() }));
+      }
+    }
+  }
+  
+  public static class ListEntered
+    implements Node.CmdNodeListener
+  {
+    private final Kshell kshell;
+    
+    ListEntered(Kshell paramKshell)
+    {
+      kshell = paramKshell;
+    }
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      if (paramCommand.parameters().size() == 0)
+      {
+        System.out.println(kshell.listeEntered());
+        return;
+      }
+      StringBuilder localStringBuilder = new StringBuilder();
+      localStringBuilder.append("'");
+      localStringBuilder.append(paramCommand.line());
+      localStringBuilder.append("' parameter error, usage: ");
+      localStringBuilder.append(paramNode.id());
+      localStringBuilder.append(" ");
+      localStringBuilder.append(paramNode.params());
+      throw new IllegalArgumentException(localStringBuilder.toString());
+    }
+  }
+  
+  public static class LocationUpdate
+    implements Node.CmdNodeListener
+  {
+    private final Kshell kshell;
+    
+    LocationUpdate(Kshell paramKshell)
+    {
+      kshell = paramKshell;
+    }
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      if (paramCommand.parameters().size() <= 1)
+      {
+        if (paramCommand.parameters().size() == 0)
+        {
+          kshell.updateLocation();
+          return;
+        }
+        kshell.updateLocation((String)paramCommand.parameters().get(0));
+        return;
+      }
+      StringBuilder localStringBuilder = new StringBuilder();
+      localStringBuilder.append("'");
+      localStringBuilder.append(paramCommand.line());
+      localStringBuilder.append("' parameter error, usage: ");
+      localStringBuilder.append(paramNode.id());
+      localStringBuilder.append(" ");
+      localStringBuilder.append(paramNode.params());
+      throw new IllegalArgumentException(localStringBuilder.toString());
+    }
+  }
+  
+  public static class ManeuverUpdate
+    implements Node.CmdNodeListener
+  {
+    private final Kshell kshell;
+    
+    ManeuverUpdate(Kshell paramKshell)
+    {
+      kshell = paramKshell;
+    }
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      if (paramCommand.parameters().size() <= 1)
+      {
+        if (paramCommand.parameters().size() == 0)
+        {
+          kshell.updateManeuver();
+          return;
+        }
+        kshell.updateManeuver((String)paramCommand.parameters().get(0));
+        return;
+      }
+      StringBuilder localStringBuilder = new StringBuilder();
+      localStringBuilder.append("'");
+      localStringBuilder.append(paramCommand.line());
+      localStringBuilder.append("' parameter error, usage: ");
+      localStringBuilder.append(paramNode.id());
+      localStringBuilder.append(" ");
+      localStringBuilder.append(paramNode.params());
+      throw new IllegalArgumentException(localStringBuilder.toString());
+    }
+  }
+  
+  public static class NavEngineToString
+    implements Node.CmdNodeListener
+  {
+    private final NavClientConnection navClientConnection;
+    
+    NavEngineToString(NavClientConnection paramNavClientConnection)
+    {
+      navClientConnection = paramNavClientConnection;
+    }
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      if (paramCommand.parameters().size() == 0)
+      {
+        System.out.println(navClientConnection.navRepo().toJson());
+        return;
+      }
+      StringBuilder localStringBuilder = new StringBuilder();
+      localStringBuilder.append("'");
+      localStringBuilder.append(paramCommand.line());
+      localStringBuilder.append("' parameter error, usage: ");
+      localStringBuilder.append(paramNode.id());
+      localStringBuilder.append(" ");
+      localStringBuilder.append(paramNode.params());
+      throw new IllegalArgumentException(localStringBuilder.toString());
+    }
+  }
+  
+  public static class NavGoff
+    implements Node.CmdNodeListener
+  {
+    private final NavClientConnection navClientConnection;
+    
+    NavGoff(NavClientConnection paramNavClientConnection)
+    {
+      navClientConnection = paramNavClientConnection;
+    }
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      if (paramCommand.parameters().size() <= 1)
+      {
+        if (paramCommand.parameters().size() == 0)
+        {
+          navClientConnection.onGuidanceFinished();
+          return;
+        }
+        navClientConnection.onGuidanceFinished((String)paramCommand.parameters().get(0));
+        return;
+      }
+      StringBuilder localStringBuilder = new StringBuilder();
+      localStringBuilder.append("'");
+      localStringBuilder.append(paramCommand.line());
+      localStringBuilder.append("' parameter error, usage: ");
+      localStringBuilder.append(paramNode.id());
+      localStringBuilder.append(" ");
+      localStringBuilder.append(paramNode.params());
+      throw new IllegalArgumentException(localStringBuilder.toString());
+    }
+  }
+  
+  public static class NavGon
+    implements Node.CmdNodeListener
+  {
+    private final NavClientConnection navClientConnection;
+    
+    NavGon(NavClientConnection paramNavClientConnection)
+    {
+      navClientConnection = paramNavClientConnection;
+    }
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      if (paramCommand.parameters().size() <= 1)
+      {
+        if (paramCommand.parameters().size() == 0)
+        {
+          navClientConnection.onGuidanceStarted();
+          return;
+        }
+        navClientConnection.onGuidanceStarted((String)paramCommand.parameters().get(0));
+        return;
+      }
+      StringBuilder localStringBuilder = new StringBuilder();
+      localStringBuilder.append("'");
+      localStringBuilder.append(paramCommand.line());
+      localStringBuilder.append("' parameter error, usage: ");
+      localStringBuilder.append(paramNode.id());
+      localStringBuilder.append(" ");
+      localStringBuilder.append(paramNode.params());
+      throw new IllegalArgumentException(localStringBuilder.toString());
+    }
+  }
+  
+  public static class NavGpsAvailable
+    implements Node.CmdNodeListener
+  {
+    private final NavClientConnection navClientConnection;
+    
+    NavGpsAvailable(NavClientConnection paramNavClientConnection)
+    {
+      navClientConnection = paramNavClientConnection;
+    }
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      if (paramCommand.parameters().size() <= 1)
+      {
+        if (paramCommand.parameters().size() == 0)
+        {
+          navClientConnection.onGpsSignalAvailable();
+          return;
+        }
+        navClientConnection.onGpsSignalAvailable((String)paramCommand.parameters().get(0));
+        return;
+      }
+      StringBuilder localStringBuilder = new StringBuilder();
+      localStringBuilder.append("'");
+      localStringBuilder.append(paramCommand.line());
+      localStringBuilder.append("' parameter error, usage: ");
+      localStringBuilder.append(paramNode.id());
+      localStringBuilder.append(" ");
+      localStringBuilder.append(paramNode.params());
+      throw new IllegalArgumentException(localStringBuilder.toString());
+    }
+  }
+  
+  public static class NavGpsLost
+    implements Node.CmdNodeListener
+  {
+    private final NavClientConnection navClientConnection;
+    
+    NavGpsLost(NavClientConnection paramNavClientConnection)
+    {
+      navClientConnection = paramNavClientConnection;
+    }
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      if (paramCommand.parameters().size() <= 1)
+      {
+        if (paramCommand.parameters().size() == 0)
+        {
+          navClientConnection.onGpsSignalLost();
+          return;
+        }
+        navClientConnection.onGpsSignalLost((String)paramCommand.parameters().get(0));
+        return;
+      }
+      StringBuilder localStringBuilder = new StringBuilder();
+      localStringBuilder.append("'");
+      localStringBuilder.append(paramCommand.line());
+      localStringBuilder.append("' parameter error, usage: ");
+      localStringBuilder.append(paramNode.id());
+      localStringBuilder.append(" ");
+      localStringBuilder.append(paramNode.params());
+      throw new IllegalArgumentException(localStringBuilder.toString());
+    }
+  }
+  
+  public static class NavRerouting
+    implements Node.CmdNodeListener
+  {
+    private final NavClientConnection navClientConnection;
+    
+    NavRerouting(NavClientConnection paramNavClientConnection)
+    {
+      navClientConnection = paramNavClientConnection;
+    }
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      if (paramCommand.parameters().size() <= 1)
+      {
+        if (paramCommand.parameters().size() == 0)
+        {
+          navClientConnection.onRerouting("Rerouting");
+          return;
+        }
+        navClientConnection.onRerouting("Rerouting", (String)paramCommand.parameters().get(0));
+        return;
+      }
+      StringBuilder localStringBuilder = new StringBuilder();
+      localStringBuilder.append("'");
+      localStringBuilder.append(paramCommand.line());
+      localStringBuilder.append("' parameter error, usage: ");
+      localStringBuilder.append(paramNode.id());
+      localStringBuilder.append(" ");
+      localStringBuilder.append(paramNode.params());
+      throw new IllegalArgumentException(localStringBuilder.toString());
+    }
+  }
+  
+  public static class SetReconnectMode
+    implements Node.CmdNodeListener
+  {
+    private final Connection connection;
+    
+    SetReconnectMode(Connection paramConnection)
+    {
+      connection = paramConnection;
+    }
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      if (paramCommand.parameters().size() == 1)
+      {
+        localObject = (String)paramCommand.parameters().get(0);
+        int i = -1;
+        int j = ((String)localObject).hashCode();
+        if (j != 3569038)
+        {
+          if ((j == 97196323) && (((String)localObject).equals("false"))) {
+            i = 1;
+          }
+        }
+        else if (((String)localObject).equals("true")) {
+          i = 0;
+        }
+        if (i != 0)
+        {
+          if (i == 1)
+          {
+            connection.setShallReconnect(false);
+            return;
+          }
+          localObject = new StringBuilder();
+          ((StringBuilder)localObject).append("'");
+          ((StringBuilder)localObject).append(paramCommand.line());
+          ((StringBuilder)localObject).append("' parameter error, usage: ");
+          ((StringBuilder)localObject).append(paramNode.id());
+          ((StringBuilder)localObject).append(" ");
+          ((StringBuilder)localObject).append(paramNode.params());
+          throw new IllegalArgumentException(((StringBuilder)localObject).toString());
+        }
+        connection.setShallReconnect(true);
+        return;
+      }
+      Object localObject = new StringBuilder();
+      ((StringBuilder)localObject).append("'");
+      ((StringBuilder)localObject).append(paramCommand.line());
+      ((StringBuilder)localObject).append("' parameter error, usage: ");
+      ((StringBuilder)localObject).append(paramNode.id());
+      ((StringBuilder)localObject).append(" ");
+      ((StringBuilder)localObject).append(paramNode.params());
+      throw new IllegalArgumentException(((StringBuilder)localObject).toString());
+    }
+  }
+  
+  public static class Sleep
+    implements Node.CmdNodeListener
+  {
+    public Sleep() {}
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      if (paramCommand.parameters().size() == 1) {
+        try
+        {
+          Thread.sleep(Integer.parseInt((String)paramCommand.parameters().get(0)));
+          return;
+        }
+        catch (Exception paramNode)
+        {
+          localStringBuilder = new StringBuilder();
+          localStringBuilder.append("'");
+          localStringBuilder.append(paramCommand.line());
+          localStringBuilder.append("' runtime error: ");
+          localStringBuilder.append(paramNode.getMessage());
+          throw new RuntimeException(localStringBuilder.toString());
+        }
+      }
+      StringBuilder localStringBuilder = new StringBuilder();
+      localStringBuilder.append("'");
+      localStringBuilder.append(paramCommand.line());
+      localStringBuilder.append("' parameter error, usage: ");
+      localStringBuilder.append(paramNode.id());
+      localStringBuilder.append(" ");
+      localStringBuilder.append(paramNode.usage());
+      throw new IllegalArgumentException(localStringBuilder.toString());
+    }
+  }
+  
+  public static class Wait4Connect
+    implements Node.CmdNodeListener
+  {
+    private final Kshell kshell;
+    
+    Wait4Connect(Kshell paramKshell)
+    {
+      kshell = paramKshell;
+    }
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      kshell.wait4ClientConnectionState(true);
+    }
+  }
+  
+  public static class Wait4DisConnect
+    implements Node.CmdNodeListener
+  {
+    private final Kshell kshell;
+    
+    Wait4DisConnect(Kshell paramKshell)
+    {
+      kshell = paramKshell;
+    }
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      kshell.wait4ClientConnectionState(false);
+    }
+  }
+  
+  public static class Wait4Transmitted
+    implements Node.CmdNodeListener
+  {
+    private final NavClientConnection navClientConnection;
+    
+    Wait4Transmitted(NavClientConnection paramNavClientConnection)
+    {
+      navClientConnection = paramNavClientConnection;
+    }
+    
+    public void execute(Node paramNode, Command paramCommand)
+    {
+      if (paramCommand.parameters().size() == 0)
+      {
+        navClientConnection.wait4RequestsSubmitted();
+        return;
+      }
+      StringBuilder localStringBuilder = new StringBuilder();
+      localStringBuilder.append("'");
+      localStringBuilder.append(paramCommand.line());
+      localStringBuilder.append("' parameter error, usage: ");
+      localStringBuilder.append(paramNode.id());
+      localStringBuilder.append(" ");
+      localStringBuilder.append(paramNode.params());
+      throw new IllegalArgumentException(localStringBuilder.toString());
+    }
+  }
+}

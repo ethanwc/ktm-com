@@ -1,0 +1,45 @@
+package com.ktm.kmrc.shell;
+
+import java.io.PrintStream;
+import java.util.LinkedList;
+
+public class AsyncPrinter
+{
+  private final LinkedList<String> printQueue = new LinkedList();
+  
+  AsyncPrinter(final PrintStream paramPrintStream)
+  {
+    new Thread(new Runnable()
+    {
+      public void run()
+      {
+        for (;;)
+        {
+          synchronized (printQueue)
+          {
+            int i = printQueue.size();
+            if (i == 0) {}
+            try
+            {
+              printQueue.wait();
+            }
+            catch (InterruptedException localInterruptedException) {}
+            String str = (String)printQueue.removeFirst();
+            paramPrintStream.println(str);
+            paramPrintStream.flush();
+          }
+        }
+      }
+    }).start();
+  }
+  
+  public void print(String paramString)
+  {
+    synchronized (printQueue)
+    {
+      printQueue.add(paramString);
+      printQueue.notify();
+      return;
+    }
+  }
+}

@@ -1,0 +1,99 @@
+package com.ktm.navapp.ui.welcome;
+
+import android.content.Context;
+import android.content.Intent;
+import android.content.res.Resources;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ListView;
+import android.widget.TextView;
+import com.ktm.navapp.connectivity.endpoints.Dashboard;
+import com.ktm.navapp.connectivity.endpoints.DashboardManager;
+import java.util.List;
+
+public class BikesListAdapter
+  extends ArrayAdapter<Dashboard>
+{
+  BikesListAdapter(Context paramContext)
+  {
+    super(paramContext, 2131427439);
+  }
+  
+  BikesListAdapter(Context paramContext, List<Dashboard> paramList)
+  {
+    super(paramContext, 2131427439, paramList);
+  }
+  
+  public View getView(int paramInt, final View paramView, final ViewGroup paramViewGroup)
+  {
+    View localView = paramView;
+    if (paramView == null) {
+      localView = LayoutInflater.from(getContext()).inflate(2131427439, null);
+    }
+    paramView = (Dashboard)getItem(paramInt);
+    if (paramView != null)
+    {
+      LinearLayout localLinearLayout = (LinearLayout)localView.findViewById(2131231202);
+      TextView localTextView = (TextView)localView.findViewById(2131231124);
+      ImageView localImageView = (ImageView)localView.findViewById(2131230802);
+      Button localButton = (Button)localView.findViewById(2131230876);
+      if (!paramView.aliasName().isEmpty()) {
+        localTextView.setText(paramView.aliasName());
+      } else {
+        localTextView.setText(paramView.btDeviceName());
+      }
+      Resources localResources = getContext().getResources();
+      if (paramView.isFavorite())
+      {
+        localTextView.setTextColor(localResources.getColor(2131034267, null));
+        localImageView.setImageResource(2131165345);
+        localButton.setTextColor(localResources.getColor(2131034267, null));
+      }
+      else
+      {
+        localTextView.setTextColor(localResources.getColor(2131034269, null));
+        localImageView.setImageResource(2131165344);
+        localButton.setTextColor(localResources.getColor(2131034269, null));
+      }
+      localLinearLayout.setOnClickListener(new View.OnClickListener()
+      {
+        public void onClick(View paramAnonymousView)
+        {
+          paramViewGroup.post(new Runnable()
+          {
+            public void run()
+            {
+              ((ListView)val$parent).setSelection(0);
+            }
+          });
+          paramAnonymousView = DashboardManager.getInstance().setFavoriteDashboard(paramView);
+          clear();
+          addAll(paramAnonymousView);
+          notifyDataSetChanged();
+        }
+      });
+      localButton.setOnClickListener(new View.OnClickListener()
+      {
+        public void onClick(View paramAnonymousView)
+        {
+          Intent localIntent = new Intent(getContext(), EditBikeName.class);
+          localIntent.putExtra(EditBikeName.BIKE_MAC_ADDRESS, paramView.macAddress());
+          if (paramView.aliasName().isEmpty()) {
+            paramAnonymousView = paramView.btDeviceName();
+          } else {
+            paramAnonymousView = paramView.aliasName();
+          }
+          localIntent.putExtra(EditBikeName.BIKE_NAME, paramAnonymousView);
+          getContext().startActivity(localIntent);
+        }
+      });
+    }
+    return localView;
+  }
+}

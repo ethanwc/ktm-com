@@ -1,0 +1,70 @@
+package com.ktm.navapp.ui.search;
+
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+import com.ktm.navapp.logging.Log;
+import com.ktm.navapp.search.TripManager;
+import com.ktm.navapp.search.Waypoint;
+import com.ktm.navapp.ui.base.NavAppBaseFragment;
+import com.ktm.navapp.ui.mainscreen.MainScreen;
+
+public class DealerDetailFragment
+  extends NavAppBaseFragment
+{
+  static final String TAG = DealerDetailFragment.class.getSimpleName();
+  private static Waypoint sDestination;
+  @BindView(2131231046)
+  TextView mMapPointDetail1;
+  @BindView(2131231047)
+  TextView mMapPointDetail2;
+  
+  public DealerDetailFragment() {}
+  
+  public static DealerDetailFragment newInstance(Waypoint paramWaypoint)
+  {
+    sDestination = paramWaypoint;
+    return new DealerDetailFragment();
+  }
+  
+  public void onActivityCreated(Bundle paramBundle)
+  {
+    super.onActivityCreated(paramBundle);
+    paramBundle = sDestination;
+    if (paramBundle != null)
+    {
+      mMapPointDetail1.setText(paramBundle.getTitle().toUpperCase());
+      mMapPointDetail2.setText(paramBundle.getAddressMultiline().toUpperCase());
+    }
+  }
+  
+  public View onCreateView(LayoutInflater paramLayoutInflater, ViewGroup paramViewGroup, Bundle paramBundle)
+  {
+    Log.d(TAG, "onCreateView()");
+    paramLayoutInflater = paramLayoutInflater.inflate(2131427393, paramViewGroup, false);
+    ButterKnife.bind(this, paramLayoutInflater);
+    return paramLayoutInflater;
+  }
+  
+  @OnClick({2131231045})
+  public void onDealerCancelButton()
+  {
+    Log.d(TAG, "onDealerCancelButton()");
+    getActivity().getSupportFragmentManager().popBackStack();
+  }
+  
+  @OnClick({2131231048})
+  public void onDealerSetButton()
+  {
+    Log.d(TAG, "onDealerSetButton()");
+    TripManager.initTrip(sDestination);
+    ((MainScreen)getActivity()).setRoutePreviewView(false);
+  }
+}

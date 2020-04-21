@@ -1,0 +1,87 @@
+package com.ktm.navapp.ui.widgets;
+
+import android.content.Context;
+import android.util.AttributeSet;
+import android.view.View;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
+import android.view.animation.Animation.AnimationListener;
+import androidx.appcompat.widget.AppCompatTextView;
+
+public class AlphaAnimatedTextView
+  extends AppCompatTextView
+{
+  protected static final int ANIMATION_DURATION = 800;
+  protected static final float MAX_ALPHA = 1.0F;
+  protected static final float MIN_ALPHA = 0.4F;
+  
+  public AlphaAnimatedTextView(Context paramContext)
+  {
+    super(paramContext);
+  }
+  
+  public AlphaAnimatedTextView(Context paramContext, AttributeSet paramAttributeSet)
+  {
+    super(paramContext, paramAttributeSet);
+  }
+  
+  public AlphaAnimatedTextView(Context paramContext, AttributeSet paramAttributeSet, int paramInt)
+  {
+    super(paramContext, paramAttributeSet, paramInt);
+  }
+  
+  public void hide()
+  {
+    AlphaAnimation localAlphaAnimation = new AlphaAnimation(1.0F, 0.4F);
+    localAlphaAnimation.setDuration(800L);
+    localAlphaAnimation.setFillAfter(true);
+    localAlphaAnimation.setAnimationListener(new Animation.AnimationListener()
+    {
+      public void onAnimationEnd(Animation paramAnonymousAnimation)
+      {
+        if (getVisibility() == 0) {
+          show();
+        }
+      }
+      
+      public void onAnimationRepeat(Animation paramAnonymousAnimation) {}
+      
+      public void onAnimationStart(Animation paramAnonymousAnimation) {}
+    });
+    startAnimation(localAlphaAnimation);
+  }
+  
+  protected void onVisibilityChanged(View paramView, int paramInt)
+  {
+    super.onVisibilityChanged(paramView, paramInt);
+    if (paramInt == 8)
+    {
+      clearAnimation();
+      return;
+    }
+    if (paramInt == 0) {
+      show();
+    }
+  }
+  
+  public void show()
+  {
+    AlphaAnimation localAlphaAnimation = new AlphaAnimation(0.4F, 1.0F);
+    localAlphaAnimation.setDuration(800L);
+    localAlphaAnimation.setFillAfter(true);
+    localAlphaAnimation.setAnimationListener(new Animation.AnimationListener()
+    {
+      public void onAnimationEnd(Animation paramAnonymousAnimation)
+      {
+        if (getVisibility() == 0) {
+          hide();
+        }
+      }
+      
+      public void onAnimationRepeat(Animation paramAnonymousAnimation) {}
+      
+      public void onAnimationStart(Animation paramAnonymousAnimation) {}
+    });
+    startAnimation(localAlphaAnimation);
+  }
+}

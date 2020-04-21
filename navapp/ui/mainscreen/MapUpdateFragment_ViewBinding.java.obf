@@ -1,0 +1,55 @@
+package com.ktm.navapp.ui.mainscreen;
+
+import android.view.View;
+import android.widget.Button;
+import butterknife.Unbinder;
+import butterknife.internal.DebouncingOnClickListener;
+import butterknife.internal.Utils;
+
+public class MapUpdateFragment_ViewBinding
+  implements Unbinder
+{
+  private MapUpdateFragment target;
+  private View view7f08014a;
+  private View view7f08014b;
+  
+  public MapUpdateFragment_ViewBinding(final MapUpdateFragment paramMapUpdateFragment, View paramView)
+  {
+    target = paramMapUpdateFragment;
+    View localView = Utils.findRequiredView(paramView, 2131231050, "field 'mBtUpdate' and method 'onUpdateButton'");
+    mBtUpdate = ((Button)Utils.castView(localView, 2131231050, "field 'mBtUpdate'", Button.class));
+    view7f08014a = localView;
+    localView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramMapUpdateFragment.onUpdateButton();
+      }
+    });
+    paramView = Utils.findRequiredView(paramView, 2131231051, "method 'onSnoozeButton'");
+    view7f08014b = paramView;
+    paramView.setOnClickListener(new DebouncingOnClickListener()
+    {
+      public void doClick(View paramAnonymousView)
+      {
+        paramMapUpdateFragment.onSnoozeButton();
+      }
+    });
+  }
+  
+  public void unbind()
+  {
+    MapUpdateFragment localMapUpdateFragment = target;
+    if (localMapUpdateFragment != null)
+    {
+      target = null;
+      mBtUpdate = null;
+      view7f08014a.setOnClickListener(null);
+      view7f08014a = null;
+      view7f08014b.setOnClickListener(null);
+      view7f08014b = null;
+      return;
+    }
+    throw new IllegalStateException("Bindings already cleared.");
+  }
+}

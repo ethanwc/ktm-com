@@ -1,0 +1,69 @@
+package com.ktm.kmrc.services.navigation.dump;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.annotations.SerializedName;
+import com.ktm.kmrc.services.navigation.UiContext;
+
+public class NavRepoDump
+{
+  @SerializedName("UiContext")
+  public UiContext uiContext = null;
+  @SerializedName("UpdateUI")
+  public UpdateUIDump updateUiDump = new UpdateUIDump();
+  
+  public NavRepoDump() {}
+  
+  public static NavRepoDump fromJsonString(String paramString)
+  {
+    GsonBuilder localGsonBuilder = new GsonBuilder();
+    localGsonBuilder.registerTypeAdapter(UpdateUIDump.class, new NavRepoDumpUpdateUiDeserializer());
+    return (NavRepoDump)localGsonBuilder.create().fromJson(paramString, NavRepoDump.class);
+  }
+  
+  public boolean equals(Object paramObject)
+  {
+    boolean bool2 = false;
+    if (paramObject == null) {
+      return false;
+    }
+    if (paramObject == this) {
+      return true;
+    }
+    if (!(paramObject instanceof NavRepoDump)) {
+      return false;
+    }
+    paramObject = (NavRepoDump)paramObject;
+    boolean bool1 = bool2;
+    if (uiContext == uiContext)
+    {
+      bool1 = bool2;
+      if (updateUiDump.equals(updateUiDump)) {
+        bool1 = true;
+      }
+    }
+    return bool1;
+  }
+  
+  public boolean hasValue()
+  {
+    return (uiContext != null) || (updateUiDump.hasValue());
+  }
+  
+  public String toJson()
+  {
+    GsonBuilder localGsonBuilder = new GsonBuilder();
+    localGsonBuilder.setPrettyPrinting();
+    localGsonBuilder.registerTypeAdapter(UpdateUIDump.class, new NavRepoDumpUpdateUISerializer());
+    return localGsonBuilder.create().toJson(this);
+  }
+  
+  public JsonObject toJsonTree()
+  {
+    GsonBuilder localGsonBuilder = new GsonBuilder();
+    localGsonBuilder.registerTypeAdapter(UpdateUIDump.class, new NavRepoDumpUpdateUISerializer());
+    return localGsonBuilder.create().toJsonTree(this).getAsJsonObject();
+  }
+}

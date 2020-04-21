@@ -1,0 +1,29 @@
+package com.ktm.navapp.connectivity.bluetooth;
+
+import com.ktm.kmrc.TransportMap;
+import com.ktm.kmrc.io.Connection.LinkingListener;
+import com.ktm.navapp.connectivity.endpoints.Dashboard;
+import java.io.IOException;
+
+public class BtDashboardSocket
+  extends BtAndroidKSocket
+{
+  private final Dashboard dashboard;
+  
+  public BtDashboardSocket(Dashboard paramDashboard)
+  {
+    super(paramDashboard.macAddress(), TransportMap.NAVIGATION.uuidString(), TransportMap.NAVIGATION.iAPIdentifier());
+    dashboard = paramDashboard;
+  }
+  
+  public void establishConnection(Connection.LinkingListener paramLinkingListener)
+    throws IOException
+  {
+    super.connect(paramLinkingListener);
+  }
+  
+  public Dashboard identifier()
+  {
+    return dashboard;
+  }
+}

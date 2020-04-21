@@ -1,0 +1,33 @@
+package com.ktm.navapp.ui.settings.downloadvoices;
+
+import android.view.View;
+import android.widget.TextView;
+import butterknife.internal.Utils;
+
+public class DownloadVoicesSettingsFragment_ViewBinding
+  extends VoicesSettingsFragment_ViewBinding
+{
+  private DownloadVoicesSettingsFragment target;
+  
+  public DownloadVoicesSettingsFragment_ViewBinding(DownloadVoicesSettingsFragment paramDownloadVoicesSettingsFragment, View paramView)
+  {
+    super(paramDownloadVoicesSettingsFragment, paramView);
+    target = paramDownloadVoicesSettingsFragment;
+    mHeader = ((TextView)Utils.findRequiredViewAsType(paramView, 2131230860, "field 'mHeader'", TextView.class));
+    mNoItemsText = ((TextView)Utils.findRequiredViewAsType(paramView, 2131231087, "field 'mNoItemsText'", TextView.class));
+  }
+  
+  public void unbind()
+  {
+    DownloadVoicesSettingsFragment localDownloadVoicesSettingsFragment = target;
+    if (localDownloadVoicesSettingsFragment != null)
+    {
+      target = null;
+      mHeader = null;
+      mNoItemsText = null;
+      super.unbind();
+      return;
+    }
+    throw new IllegalStateException("Bindings already cleared.");
+  }
+}

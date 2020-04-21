@@ -1,0 +1,65 @@
+package com.ktm.navapp.ui.settings;
+
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+import com.ktm.navapp.search.Trip;
+import com.ktm.navapp.search.Trip.RouteType;
+import com.ktm.navapp.search.TripManager;
+import com.ktm.navapp.ui.base.NavAppBaseFragment;
+import com.ktm.navapp.ui.mainscreen.MainScreen;
+
+public class LetsRideFragment
+  extends NavAppBaseFragment
+{
+  public LetsRideFragment() {}
+  
+  @OnClick({2131231016})
+  public void closeLetsRide()
+  {
+    getActivity().getSupportFragmentManager().popBackStack();
+  }
+  
+  public View onCreateView(LayoutInflater paramLayoutInflater, ViewGroup paramViewGroup, Bundle paramBundle)
+  {
+    paramLayoutInflater = paramLayoutInflater.inflate(2131427406, paramViewGroup, false);
+    ButterKnife.bind(this, paramLayoutInflater);
+    return paramLayoutInflater;
+  }
+  
+  @OnClick({2131231017})
+  public void onMyTrips()
+  {
+    ((MainScreen)getActivity()).setLoadTripView();
+  }
+  
+  @OnClick({2131231018})
+  public void onNavigation()
+  {
+    TripManager.setRouteType(Trip.RouteType.ROUTE);
+    ((MainScreen)getActivity()).setSearchView(false, -1);
+  }
+  
+  @OnClick({2131231019})
+  public void onSmartNavigation()
+  {
+    TripManager.setRouteType(Trip.RouteType.SMART_ROUTE);
+    ((MainScreen)getActivity()).setSearchView(false, -1);
+  }
+  
+  @OnClick({2131231020})
+  public void onSmartRoundTrip()
+  {
+    TripManager.setRouteType(Trip.RouteType.SMART_ROUND_TRIP);
+    TripManager.initTrip(null);
+    Trip localTrip = TripManager.getTrip();
+    name = "Round Trip";
+    TripManager.setTrip(localTrip);
+    ((MainScreen)getActivity()).setRoutePreviewView(false);
+  }
+}

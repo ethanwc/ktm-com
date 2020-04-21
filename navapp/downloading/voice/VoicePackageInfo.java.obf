@@ -1,0 +1,29 @@
+package com.ktm.navapp.downloading.voice;
+
+import com.here.android.mpa.guidance.VoicePackage;
+
+public class VoicePackageInfo
+{
+  public final long id;
+  public final boolean isLocal;
+  public final long packageContentSizeKb;
+  public final long packageDownloadSizeKb;
+  public final String title;
+  
+  public VoicePackageInfo(String paramString, VoicePackage paramVoicePackage)
+  {
+    title = paramString;
+    if (paramVoicePackage == null)
+    {
+      id = -1L;
+      isLocal = true;
+      packageDownloadSizeKb = 0L;
+      packageContentSizeKb = 0L;
+      return;
+    }
+    id = paramVoicePackage.getId();
+    isLocal = paramVoicePackage.isLocal();
+    packageDownloadSizeKb = ((paramVoicePackage.getDownloadSize() * 1000.0F));
+    packageContentSizeKb = ((paramVoicePackage.getContentSize() * 1000.0F));
+  }
+}

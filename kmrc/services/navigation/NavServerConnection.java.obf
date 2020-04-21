@@ -1,0 +1,141 @@
+package com.ktm.kmrc.services.navigation;
+
+import com.ktm.kmrc.io.Connection;
+import com.ktm.kmrc.io.KSocket;
+import com.ktm.kmrc.services.navigation.dump.GpsIconDump;
+import com.ktm.kmrc.services.navigation.dump.LabelDump;
+import com.ktm.kmrc.services.navigation.dump.NavRepoDump;
+import com.ktm.kmrc.services.navigation.dump.NotificationIconDump;
+import com.ktm.kmrc.services.navigation.dump.TurnIconDump;
+import com.ktm.kmrc.services.navigation.dump.UpdateUIDump;
+
+public class NavServerConnection
+  extends Connection
+{
+  private final NavServiceListener serviceListener;
+  
+  public NavServerConnection(NavServerListener paramNavServerListener)
+  {
+    super(new NavServerConnectionListener(paramNavServerListener));
+    serviceListener = paramNavServerListener;
+  }
+  
+  void handleNavCommand(String paramString)
+  {
+    NavServiceListener localNavServiceListener = serviceListener;
+    KSocket localKSocket = ksocket();
+    StringBuilder localStringBuilder = new StringBuilder();
+    localStringBuilder.append("received ");
+    localStringBuilder.append(paramString);
+    localNavServiceListener.onServiceMsg(localKSocket, localStringBuilder.toString());
+    paramString = NavRepoDump.fromJsonString(paramString);
+    if (uiContext != null)
+    {
+      int i = 1.$SwitchMap$com$ktm$kmrc$services$navigation$UiContext[uiContext.ordinal()];
+      if (i != 1) {
+        if (i != 2)
+        {
+          if (i == 3) {
+            ((NavServerListener)serviceListener).onGuidanceUiContext(ksocket());
+          }
+        }
+        else {
+          ((NavServerListener)serviceListener).onDefaultUiContext(ksocket());
+        }
+      }
+    }
+    if (updateUiDump != null)
+    {
+      if (updateUiDump.turnIcon != null)
+      {
+        if (updateUiDump.turnIcon.Image != null) {
+          ((NavServerListener)serviceListener).onChangeWidgetContent(ksocket(), "TurnIcon", updateUiDump.turnIcon.Image.toString());
+        }
+        if (updateUiDump.turnIcon.Visibility != null) {
+          ((NavServerListener)serviceListener).onChangeWidgetVisibility(ksocket(), "TurnIcon", updateUiDump.turnIcon.Visibility);
+        }
+      }
+      if (updateUiDump.turnDist != null)
+      {
+        if (updateUiDump.turnDist.Text != null) {
+          ((NavServerListener)serviceListener).onChangeWidgetContent(ksocket(), "TurnDist", updateUiDump.turnDist.Text);
+        }
+        if (updateUiDump.turnDist.Visibility != null) {
+          ((NavServerListener)serviceListener).onChangeWidgetVisibility(ksocket(), "TurnDist", updateUiDump.turnDist.Visibility);
+        }
+      }
+      if (updateUiDump.turnDistUnit != null)
+      {
+        if (updateUiDump.turnDistUnit.Text != null) {
+          ((NavServerListener)serviceListener).onChangeWidgetContent(ksocket(), "TurnDistUnit", updateUiDump.turnDistUnit.Text);
+        }
+        if (updateUiDump.turnDistUnit.Visibility != null) {
+          ((NavServerListener)serviceListener).onChangeWidgetVisibility(ksocket(), "TurnDistUnit", updateUiDump.turnDistUnit.Visibility);
+        }
+      }
+      if (updateUiDump.turnInfo != null)
+      {
+        if (updateUiDump.turnInfo.Text != null) {
+          ((NavServerListener)serviceListener).onChangeWidgetContent(ksocket(), "TurnInfo", updateUiDump.turnInfo.Text);
+        }
+        if (updateUiDump.turnInfo.Visibility != null) {
+          ((NavServerListener)serviceListener).onChangeWidgetVisibility(ksocket(), "TurnInfo", updateUiDump.turnInfo.Visibility);
+        }
+      }
+      if (updateUiDump.turnRoad != null)
+      {
+        if (updateUiDump.turnRoad.Text != null) {
+          ((NavServerListener)serviceListener).onChangeWidgetContent(ksocket(), "TurnRoad", updateUiDump.turnRoad.Text);
+        }
+        if (updateUiDump.turnRoad.Visibility != null) {
+          ((NavServerListener)serviceListener).onChangeWidgetVisibility(ksocket(), "TurnRoad", updateUiDump.turnRoad.Visibility);
+        }
+      }
+      if (updateUiDump.eta != null)
+      {
+        if (updateUiDump.eta.Text != null) {
+          ((NavServerListener)serviceListener).onChangeWidgetContent(ksocket(), "ETA", updateUiDump.eta.Text);
+        }
+        if (updateUiDump.eta.Visibility != null) {
+          ((NavServerListener)serviceListener).onChangeWidgetVisibility(ksocket(), "ETA", updateUiDump.eta.Visibility);
+        }
+      }
+      if (updateUiDump.dist2Target != null)
+      {
+        if (updateUiDump.dist2Target.Text != null) {
+          ((NavServerListener)serviceListener).onChangeWidgetContent(ksocket(), "Dist2Target", updateUiDump.dist2Target.Text);
+        }
+        if (updateUiDump.dist2Target.Visibility != null) {
+          ((NavServerListener)serviceListener).onChangeWidgetVisibility(ksocket(), "Dist2Target", updateUiDump.dist2Target.Visibility);
+        }
+      }
+      if (updateUiDump.notificationIcon != null)
+      {
+        if (updateUiDump.notificationIcon.Image != null) {
+          ((NavServerListener)serviceListener).onChangeWidgetContent(ksocket(), "NotificationIcon", updateUiDump.notificationIcon.Image.toString());
+        }
+        if (updateUiDump.notificationIcon.Visibility != null) {
+          ((NavServerListener)serviceListener).onChangeWidgetVisibility(ksocket(), "NotificationIcon", updateUiDump.notificationIcon.Visibility);
+        }
+      }
+      if (updateUiDump.notificationText != null)
+      {
+        if (updateUiDump.notificationText.Text != null) {
+          ((NavServerListener)serviceListener).onChangeWidgetContent(ksocket(), "NotificationText", updateUiDump.notificationText.Text);
+        }
+        if (updateUiDump.notificationText.Visibility != null) {
+          ((NavServerListener)serviceListener).onChangeWidgetVisibility(ksocket(), "NotificationText", updateUiDump.notificationText.Visibility);
+        }
+      }
+      if (updateUiDump.gpsIcon != null)
+      {
+        if (updateUiDump.gpsIcon.Image != null) {
+          ((NavServerListener)serviceListener).onChangeWidgetContent(ksocket(), "GpsIcon", updateUiDump.gpsIcon.Image.toString());
+        }
+        if (updateUiDump.gpsIcon.Visibility != null) {
+          ((NavServerListener)serviceListener).onChangeWidgetVisibility(ksocket(), "GpsIcon", updateUiDump.gpsIcon.Visibility);
+        }
+      }
+    }
+  }
+}
